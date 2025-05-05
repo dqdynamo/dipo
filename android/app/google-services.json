@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "385633044097",
+    "project_id": "diploma-4cb0a",
+    "storage_bucket": "diploma-4cb0a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:385633044097:android:26e5f18aec1cb8f68bef80",
+        "android_client_info": {
+          "package_name": "com.example.diploma"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsmitCkeIACFSOOiLwgjPWJ5aBQVgCCCg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

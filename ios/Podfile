@@ -1,0 +1,19 @@
+require_relative '../flutter/bin/cache/artifacts/engine/ios/flutter_dependencies'
+
+
+# Uncomment the next line to define a global platform for your project
+platform :ios, '13.0'
+
+target 'Runner' do
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
+  # Comment the next line if you don't want to use dynamic frameworks
+  use_frameworks!
+  use_modular_headers!
+  # Pods for Runner
+
+  target 'RunnerTests' do
+    inherit! :search_paths
+    # Pods for testing
+  end
+
