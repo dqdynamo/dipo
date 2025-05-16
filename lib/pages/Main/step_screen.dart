@@ -21,7 +21,7 @@ class StepScreen extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                await stepService.saveWorkout();
+                await stepService.saveWorkout(stepService.currentDay);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Тренировка сохранена!")),
                 );

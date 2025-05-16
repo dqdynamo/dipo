@@ -1,96 +1,113 @@
-import 'dart:async';
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:pedometer/pedometer.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:diploma/services/workout_service.dart';
-import 'package:diploma/models/workout_session.dart';
+import 'package:intl/intl.dart';
+
+class WorkoutSession {
+  final int steps;
+  final double distance;
+  final int calories;
+  final int activeMinutes;
+  final DateTime date;
+
+  WorkoutSession({
+    required this.steps,
+    required this.distance,
+    required this.calories,
+    required this.activeMinutes,
+    required this.date,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'steps': steps,
+      'distance': distance,
+      'calories': calories,
+      'activeMinutes': activeMinutes,
+      'date': DateFormat('yyyy-MM-dd').format(date),
+    };
+  }
+
+  factory WorkoutSession.fromMap(Map<String, dynamic> map) {
+    return WorkoutSession(
+      steps: map['steps'] ?? 0,
+      distance: (map['distance'] ?? 0).toDouble(),
+      calories: map['calories'] ?? 0,
+      activeMinutes: map['activeMinutes'] ?? 0,
+      date: DateFormat('yyyy-MM-dd').parse(map['date']),
+    );
+  }
+}
 
 class StepTrackerService extends ChangeNotifier {
   int _steps = 0;
   double _distance = 0.0;
-  Map<String, int> _weeklySteps = {};
-  final WorkoutService _workoutService = WorkoutService();
-  StreamSubscription<StepCount>? _stepCountStream;
-  Timer? _updateTimer;
+  int _activeMinutes = 0;
+  DateTime _currentDay = DateTime.now();
 
   int get steps => _steps;
   double get distance => _distance;
-  Map<String, int> get weeklySteps => _weeklySteps;
+  int get activeMinutes => _activeMinutes;
+  DateTime get currentDay => _currentDay;
 
-  StepTrackerService() {
-    _initPermissions();
-    _loadWeeklySteps();
-  }
+  final CollectionReference _workoutsCollection =
+  FirebaseFirestore.instance.collection('workouts');
 
-  Future<void> _initPermissions() async {
-    if (await Permission.activityRecognition.request().isGranted) {
-      _startTracking();
+  Future<void> loadWorkoutForDate(DateTime date) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+    final docId = '${user.uid}_$formattedDate';
+
+    final doc = await _workoutsCollection.doc(docId).get();
+
+    if (doc.exists) {
+      final data = doc.data() as Map<String, dynamic>;
+      _steps = data['steps'] ?? 0;
+      _distance = (data['distance'] ?? 0).toDouble();
+      _activeMinutes = data['activeMinutes'] ?? 0;
+      _currentDay = date;
     } else {
-      print("Разрешение на распознавание активности отклонено");
-    }
-  }
-
-  void _startTracking() {
-    _stepCountStream = Pedometer.stepCountStream.listen(
-          (StepCount event) {
-        _steps = event.steps;
-        _updateWeeklySteps();
-        notifyListeners();
-      },
-      onError: (error) {
-        print("Ошибка в шагомере: $error");
-      },
-    );
-    _startAutoUpdate();
-  }
-
-  void _startAutoUpdate() {
-    _updateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      notifyListeners();
-    });
-  }
-
-  Future<void> _updateWeeklySteps() async {
-    final prefs = await SharedPreferences.getInstance();
-    String today = DateTime.now().toIso8601String().split('T')[0];
-
-    _weeklySteps[today] = _steps;
-
-    List<String> keys = _weeklySteps.keys.toList();
-    if (keys.length > 7) {
-      _weeklySteps.remove(keys.first);
+      _steps = 0;
+      _distance = 0.0;
+      _activeMinutes = 0;
+      _currentDay = date;
     }
 
-    await prefs.setString('weekly_steps', jsonEncode(_weeklySteps));
     notifyListeners();
   }
 
-  Future<void> _loadWeeklySteps() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? storedData = prefs.getString('weekly_steps');
 
-    if (storedData != null) {
-      _weeklySteps = Map<String, int>.from(jsonDecode(storedData));
-      notifyListeners();
-    }
-  }
+  Future<void> saveWorkout(DateTime date) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-  Future<void> saveWorkout() async {
     final workout = WorkoutSession(
       steps: _steps,
       distance: _distance,
       calories: (_steps * 0.04).toInt(),
-      date: DateTime.now(),
+      activeMinutes: _activeMinutes,
+      date: date,
     );
-    await _workoutService.saveWorkout(workout);
+
+    final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+    final docId = '${user.uid}_$formattedDate';
+
+    // ВАЖНО: doc(docId), НЕ add()
+    await _workoutsCollection.doc(docId).set(workout.toMap());
+
+    notifyListeners();
   }
 
-  @override
-  void dispose() {
-    _stepCountStream?.cancel();
-    _updateTimer?.cancel();
-    super.dispose();
+
+  // Пример метода для обновления шагов (его можно вызвать из UI)
+  void updateSteps(int newSteps) {
+    _steps = newSteps;
+    notifyListeners();
   }
+
+// Аналогично можно добавить методы для обновления distance и activeMinutes
 }
+
+

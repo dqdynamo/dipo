@@ -6,10 +6,16 @@ import 'package:diploma/pages/Authentication/login_screen.dart';
 import 'package:diploma/pages/Main/bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:diploma/services/step_tracker_service.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await initializeDateFormatting('ru', null);
 
   runApp(
     MultiProvider(
@@ -39,6 +45,17 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const BottomNavBarScreen(),
         '/workout_history': (context) => WorkoutHistoryScreen(),
       },
+
+
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', ''), // английский
+        Locale('ru', ''), // русский
+      ],
     );
   }
 }
