@@ -1,4 +1,5 @@
 import 'package:diploma/pages/Main/workout_history_screen.dart';
+import 'package:diploma/services/sleep_tracker_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:diploma/pages/Authentication/splash_screen.dart';
@@ -21,6 +22,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => StepTrackerService()),
+        ChangeNotifierProvider(create: (_) => SleepTrackerService()),
       ],
       child: const MyApp(),
     ),

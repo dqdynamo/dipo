@@ -1,185 +1,559 @@
+// lib/pages/main/dashboard_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:percent_indicator/percent_indicator.dart';
 import 'package:intl/intl.dart';
-import 'package:diploma/services/step_tracker_service.dart';
+import 'package:percent_indicator/percent_indicator.dart';
+import 'package:provider/provider.dart';
+import 'package:fl_chart/fl_chart.dart';
+
+import '../../services/step_tracker_service.dart';
+import '../../services/sleep_tracker_service.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({Key? key}) : super(key: key);
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final int stepGoal = 10000;
-  DateTime selectedDate = DateTime.now();
+  int _tab = 0; // 0 = Activity, 1 = Sleep
+  bool _showChart = false;
+  DateTime _day = DateTime.now();
+
+  /* ---------- date picker ---------- */
+  Future<void> _pickDate() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _day,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      locale: const Locale('en'),
+    );
+    if (d != null) {
+      setState(() => _day = d);
+      context.read<StepTrackerService>().loadWorkoutForDate(d);
+      context.read<SleepTrackerService>().loadSleepForDate(d);
+    }
+  }
+
+  String get _label {
+    final today = DateFormat.yMMMMd('en').format(DateTime.now());
+    final picked = DateFormat.yMMMMd('en').format(_day);
+    return picked == today ? 'Today' : picked;
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<StepTrackerService>(context, listen: false).loadWorkoutForDate(selectedDate);
+      context.read<StepTrackerService>().loadWorkoutForDate(_day);
+      context.read<SleepTrackerService>().loadSleepForDate(_day);
     });
-  }
-
-  void _onDateChanged(DateTime newDate) {
-    setState(() {
-      selectedDate = newDate;
-    });
-    Provider.of<StepTrackerService>(context, listen: false).loadWorkoutForDate(newDate);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(context, selectedDate, _onDateChanged),
-                      const SizedBox(height: 24),
-                      Consumer<StepTrackerService>(
-                        builder: (context, stepService, child) {
-                          final steps = stepService.steps;
-                          final percent = (steps / stepGoal).clamp(0.0, 1.0);
-                          final calories = (steps * 0.04).toInt();
-                          final distance = (steps * 0.0008);
+    final isAct = _tab == 0;
+    final grad =
+        isAct
+            ? const [Color(0xFFFF9240), Color(0xFFDD4733)]
+            : const [Color(0xFF35B4FF), Color(0xFF0D63C9)];
 
-                          return Column(
-                            children: [
-                              Center(
-                                child: CircularPercentIndicator(
-                                  radius: 120.0,
-                                  lineWidth: 14.0,
-                                  percent: percent,
-                                  animation: true,
-                                  circularStrokeCap: CircularStrokeCap.round,
-                                  progressColor: Colors.orange,
-                                  backgroundColor: Colors.orange.shade100,
-                                  center: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.directions_walk, color: Colors.orange, size: 30),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '$steps',
-                                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                                      ),
-                                      const Text("шагов", style: TextStyle(fontSize: 16)),
-                                      const SizedBox(height: 6),
-                                      Text("Цель: $stepGoal", style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                                      Text("Завершено: ${(percent * 100).toStringAsFixed(0)}%", style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                                    ],
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: grad,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Consumer2<StepTrackerService, SleepTrackerService>(
+            builder:
+                (_, st, sl, __) => Column(
+                  children: [
+                    /* ----- top bar ----- */
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.share, color: Colors.white),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: _pickDate,
+                            child: Row(
+                              children: [
+                                Text(
+                                  _label,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 30),
-                              GridView.count(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                children: [
-                                  _buildStatCard("Калории", "$calories ккал", Icons.local_fire_department, Colors.red),
-                                  _buildStatCard("Активность", "${(steps / 100).toStringAsFixed(1)} мин", Icons.timer, Colors.orange),
-                                  _buildStatCard("Пульс", "-", Icons.favorite, Colors.pink),
-                                  _buildStatCard("Расстояние", "${distance.toStringAsFixed(2)} км", Icons.place, Colors.blue),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
-                              ElevatedButton.icon(
-                                onPressed: () async {
-                                  await stepService.saveWorkout(selectedDate);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Данные за день сохранены")),
-                                  );
-                                },
-                                icon: const Icon(Icons.save),
-                                label: const Text("Сохранить день"),
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                                  backgroundColor: Colors.green,
-                                  foregroundColor: Colors.white,
-                                  textStyle: const TextStyle(fontSize: 18),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                                const Icon(
+                                  Icons.arrow_drop_down,
+                                  color: Colors.white,
                                 ),
-                              ),
-                            ],
-                          );
-                        },
+                              ],
+                            ),
+                          ),
+                          const Spacer(),
+                          const Icon(Icons.settings, color: Colors.white),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    /* ----- ring or chart ----- */
+                    GestureDetector(
+                      onTap: () {
+                        if (isAct) setState(() => _showChart = !_showChart);
+                      },
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 350),
+                        child:
+                            isAct
+                                ? _ActivityRingChart(
+                                  key: ValueKey(_showChart),
+                                  showChart: _showChart,
+                                  st: st,
+                                )
+                                : _SleepRing(
+                                  key: const ValueKey('sleep'),
+                                  sl: sl,
+                                ),
+                      ),
+                    ),
+
+                    /* ----- tabs ----- */
+                    Row(
+                      children: [
+                        _Tab('Activity', isAct, () {
+                          setState(() {
+                            _tab = 0;
+                            _showChart = false;
+                          });
+                        }),
+                        _Tab('Sleep', !isAct, () {
+                          setState(() {
+                            _tab = 1;
+                            _showChart = false;
+                          });
+                        }),
+                      ],
+                    ),
+
+                    /* ----- white bottom card ----- */
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 22,
+                        ),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(26),
+                          ),
+                        ),
+                        child:
+                            isAct
+                                ? _ActivityStats(st: st)
+                                : _SleepStats(sl: sl),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            );
-          },
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildHeader(BuildContext context, DateTime selectedDate, void Function(DateTime) onDateChanged) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        InkWell(
-          onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: selectedDate,
-              firstDate: DateTime(2020),
-              lastDate: DateTime.now(),
-              locale: const Locale('ru'),
-            );
-            if (picked != null) {
-              onDateChanged(picked);
-            }
-          },
-          child: Row(
-            children: [
-              const Icon(Icons.calendar_today, color: Colors.orange),
-              const SizedBox(width: 8),
-              Text(
-                DateFormat.yMMMMd('ru').format(selectedDate),
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+/* ═════════ small widgets ═════════ */
+
+class _Tab extends StatelessWidget {
+  final String text;
+  final bool sel;
+  final VoidCallback tap;
+
+  const _Tab(this.text, this.sel, this.tap);
+
+  @override
+  Widget build(BuildContext ctx) => Expanded(
+    child: GestureDetector(
+      onTap: tap,
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration:
+            sel
+                ? const BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.deepOrange, width: 3),
+                  ),
+                )
+                : null,
+        child: Text(
+          text,
+          style: TextStyle(
+            color: sel ? Colors.deepOrange : Colors.white60,
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/* ----- Activity ring OR chart ----- */
+class _ActivityRingChart extends StatelessWidget {
+  final bool showChart;
+  final StepTrackerService st;
+
+  const _ActivityRingChart({
+    Key? key,
+    required this.showChart,
+    required this.st,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext ctx) {
+    if (showChart) return _Bar(steps: st.stepsByHour);
+
+    final pct = (st.steps / 10000).clamp(0.0, 1.0);
+    return SizedBox(
+      height: 260,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Transform.translate(
+            offset: const Offset(0, -120),
+            child: Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                border: Border.all(color: Colors.orangeAccent, width: 3),
               ),
-            ],
+            ),
+          ),
+          CircularPercentIndicator(
+            radius: 120,
+            lineWidth: 18,
+            percent: pct,
+            backgroundColor: Colors.white24,
+            progressColor: Colors.white,
+            circularStrokeCap: CircularStrokeCap.round,
+            center: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.directions_walk,
+                  color: Colors.white,
+                  size: 36,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${st.steps}',
+                  style: const TextStyle(
+                    fontSize: 50,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 2,
+                  ),
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Text(
+                    'steps',
+                    style: TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/* ----- Bar chart ----- */
+class _Bar extends StatelessWidget {
+  final List<int> steps;
+
+  const _Bar({required this.steps});
+
+  @override
+  Widget build(BuildContext ctx) {
+    final max = steps.fold<int>(0, (p, e) => e > p ? e : p);
+    final maxY = ((max + 199) ~/ 200) * 200 + 200;
+    return Column(
+      children: [
+        SizedBox(
+          height: 210,
+          child: BarChart(
+            BarChartData(
+              maxY: maxY.toDouble(),
+              barTouchData: BarTouchData(enabled: false),
+              gridData: FlGridData(
+                horizontalInterval: maxY / 3,
+                drawVerticalLine: false,
+                getDrawingHorizontalLine:
+                    (v) => FlLine(color: Colors.white30, strokeWidth: 1),
+              ),
+              titlesData: FlTitlesData(
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    reservedSize: 40,
+                    interval: maxY / 3,
+                    showTitles: true,
+                    getTitlesWidget:
+                        (v, _) => Text(
+                          v.toInt().toString(),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
+                  ),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    interval: 4,
+                    showTitles: true,
+                    getTitlesWidget:
+                        (v, _) => Text(
+                          '${v.toInt()}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                  ),
+                ),
+                topTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+              ),
+              borderData: FlBorderData(show: false),
+              barGroups: [
+                for (int i = 0; i < 24; i++)
+                  BarChartGroupData(
+                    x: i,
+                    barRods: [
+                      BarChartRodData(
+                        toY: steps[i].toDouble(),
+                        width: 4,
+                        color: Colors.white.withOpacity(
+                          steps[i] > 0 ? 0.9 : 0.15,
+                        ),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${steps.fold<int>(0, (s, e) => s + e)} steps',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+/* ----- Sleep ring ----- */
+class _SleepRing extends StatelessWidget {
+  final SleepTrackerService sl;
+
+  const _SleepRing({Key? key, required this.sl}) : super(key: key);
+
+  @override
+  Widget build(BuildContext ctx) {
+    final h = (sl.totalMinutes / 60).floor();
+    final m = sl.totalMinutes % 60;
+    return SizedBox(
+      height: 270,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Icon(icon, color: color, size: 36),
-          const SizedBox(height: 8),
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+          Container(
+            width: 235,
+            height: 235,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white60, width: 2),
+            ),
+          ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.nightlight_round, color: Colors.white, size: 38),
+              const SizedBox(height: 6),
+              Text(
+                '${h}h${m.toString().padLeft(2, '0')}m',
+                style: const TextStyle(
+                  fontSize: 38,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Start: ${sl.sleepStart}',
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              Text(
+                'End:   ${sl.sleepEnd}',
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
+}
+
+/* ----- white stats cards ----- */
+class _ActivityStats extends StatelessWidget {
+  final StepTrackerService st;
+
+  const _ActivityStats({required this.st});
+
+  @override
+  Widget build(BuildContext ctx) {
+    final cal = (st.steps * 0.04).toInt();
+    final dist = st.steps * 0.0008;
+    final min = (st.steps / 100).round();
+    return Row(
+      children: [
+        _Card(
+          Icons.local_fire_department,
+          'Calories',
+          '$cal',
+          'kcal',
+          Colors.deepOrange,
+        ),
+        _Card(
+          Icons.place,
+          'Distance',
+          dist.toStringAsFixed(2),
+          'km',
+          Colors.blueAccent,
+        ),
+        _Card(Icons.timer, 'Duration', '$min', 'min', Colors.amber),
+      ],
+    );
+  }
+}
+
+class _SleepStats extends StatelessWidget {
+  final SleepTrackerService sl;
+
+  const _SleepStats({required this.sl});
+
+  @override
+  Widget build(BuildContext ctx) => Row(
+    children: [
+      _Card(
+        Icons.bedtime,
+        'Deep',
+        _f(sl.deepMinutes),
+        '',
+        const Color(0xFF536DFE),
+      ),
+      _Card(
+        Icons.hotel,
+        'Light',
+        _f(sl.lightMinutes),
+        '',
+        const Color(0xFF18FFFF),
+      ),
+      _Card(
+        Icons.wb_sunny,
+        'Awake',
+        _f(sl.wakeMinutes),
+        '',
+        const Color(0xFFFFB300),
+      ),
+    ],
+  );
+
+  String _f(int m) =>
+      '${(m / 60).floor()}h${(m % 60).toString().padLeft(2, '0')}m';
+}
+
+class _Card extends StatelessWidget {
+  final IconData ic;
+  final String label, val, unit;
+  final Color col;
+
+  const _Card(this.ic, this.label, this.val, this.unit, this.col);
+
+  @override
+  Widget build(BuildContext ctx) => Expanded(
+    child: Container(
+      margin: const EdgeInsets.symmetric(horizontal: 5),
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: col.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(ic, color: col, size: 30),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 14, color: Colors.black54),
+          ),
+          RichText(
+            text: TextSpan(
+              text: val,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+              children: [
+                TextSpan(
+                  text: unit,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
