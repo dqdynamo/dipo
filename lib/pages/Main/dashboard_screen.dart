@@ -20,27 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _showChart = false;
   DateTime _day = DateTime.now();
 
-  /* ---------- date picker ---------- */
-  Future<void> _pickDate() async {
-    final d = await showDatePicker(
-      context: context,
-      initialDate: _day,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      locale: const Locale('en'),
-    );
-    if (d != null) {
-      setState(() => _day = d);
-      context.read<StepTrackerService>().loadWorkoutForDate(d);
-      context.read<SleepTrackerService>().loadSleepForDate(d);
-    }
-  }
-
-  String get _label {
-    final today = DateFormat.yMMMMd('en').format(DateTime.now());
-    final picked = DateFormat.yMMMMd('en').format(_day);
-    return picked == today ? 'Today' : picked;
-  }
+  DateTime _mondayOf(DateTime d) => d.subtract(Duration(days: d.weekday - 1));
 
   @override
   void initState() {
@@ -48,7 +28,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<StepTrackerService>().loadWorkoutForDate(_day);
       context.read<SleepTrackerService>().loadSleepForDate(_day);
+
+      context.read<StepTrackerService>().loadWeek(_mondayOf(_day));
+      context.read<SleepTrackerService>().loadWeek(_mondayOf(_day));
     });
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _day,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      locale: const Locale('en'),
+    );
+    if (picked != null) {
+      setState(() => _day = picked);
+      context.read<StepTrackerService>().loadWorkoutForDate(picked);
+      context.read<SleepTrackerService>().loadSleepForDate(picked);
+    }
+  }
+
+  String get _label {
+    final today = DateFormat.yMMMMd('en').format(DateTime.now());
+    final picked = DateFormat.yMMMMd('en').format(_day);
+    return picked == today ? 'Today' : picked;
   }
 
   @override
@@ -73,7 +77,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             builder:
                 (_, st, sl, __) => Column(
                   children: [
-                    /* ----- top bar ----- */
+                    /* ─── top bar ─── */
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                       child: Row(
@@ -106,7 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    /* ----- ring or chart ----- */
+                    /* ─── ring/chart ─── */
                     GestureDetector(
                       onTap: () {
                         if (isAct) setState(() => _showChart = !_showChart);
@@ -127,7 +131,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
 
-                    /* ----- tabs ----- */
+                    /* ─── tabs ─── */
                     Row(
                       children: [
                         _Tab('Activity', isAct, () {
@@ -145,7 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
 
-                    /* ----- white bottom card ----- */
+                    /* ─── white bottom ─── */
                     Expanded(
                       child: Container(
                         width: double.infinity,
@@ -174,7 +178,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-/* ═════════ small widgets ═════════ */
+/* small widgets */
 
 class _Tab extends StatelessWidget {
   final String text;
@@ -184,7 +188,7 @@ class _Tab extends StatelessWidget {
   const _Tab(this.text, this.sel, this.tap);
 
   @override
-  Widget build(BuildContext ctx) => Expanded(
+  Widget build(BuildContext c) => Expanded(
     child: GestureDetector(
       onTap: tap,
       child: Container(
@@ -194,14 +198,14 @@ class _Tab extends StatelessWidget {
             sel
                 ? const BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: Colors.deepOrange, width: 3),
+                    bottom: BorderSide(color: Colors.white, width: 3),
                   ),
                 )
                 : null,
         child: Text(
           text,
           style: TextStyle(
-            color: sel ? Colors.deepOrange : Colors.white60,
+            color: sel ? Colors.white : Colors.white60,
             fontSize: 17,
             fontWeight: FontWeight.w600,
           ),
@@ -211,7 +215,6 @@ class _Tab extends StatelessWidget {
   );
 }
 
-/* ----- Activity ring OR chart ----- */
 class _ActivityRingChart extends StatelessWidget {
   final bool showChart;
   final StepTrackerService st;
@@ -292,7 +295,6 @@ class _ActivityRingChart extends StatelessWidget {
   }
 }
 
-/* ----- Bar chart ----- */
 class _Bar extends StatelessWidget {
   final List<int> steps;
 
@@ -387,7 +389,6 @@ class _Bar extends StatelessWidget {
   }
 }
 
-/* ----- Sleep ring ----- */
 class _SleepRing extends StatelessWidget {
   final SleepTrackerService sl;
 
@@ -440,34 +441,112 @@ class _SleepRing extends StatelessWidget {
   }
 }
 
-/* ----- white stats cards ----- */
+/* ----- white area stats ----- */
 class _ActivityStats extends StatelessWidget {
   final StepTrackerService st;
 
   const _ActivityStats({required this.st});
 
+  Future<void> _showAddDialog(BuildContext context) async {
+    final controller = TextEditingController();
+    final added = await showDialog<int>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Add steps'),
+            content: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(hintText: 'e.g. 500'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  final v = int.tryParse(controller.text) ?? 0;
+                  Navigator.pop(ctx, v);
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+    );
+    if (added != null && added > 0) {
+      st.setSteps(st.steps + added);
+    }
+  }
+
   @override
-  Widget build(BuildContext ctx) {
+  Widget build(BuildContext context) {
     final cal = (st.steps * 0.04).toInt();
     final dist = st.steps * 0.0008;
-    final min = (st.steps / 100).round();
-    return Row(
+    final mins = (st.steps / 100).round();
+
+    return Column(
       children: [
-        _Card(
-          Icons.local_fire_department,
-          'Calories',
-          '$cal',
-          'kcal',
-          Colors.deepOrange,
+        Row(
+          children: [
+            _Card(
+              Icons.local_fire_department,
+              'Calories',
+              '$cal',
+              'kcal',
+              Colors.deepOrange,
+            ),
+            _Card(
+              Icons.place,
+              'Distance',
+              dist.toStringAsFixed(2),
+              'km',
+              Colors.blueAccent,
+            ),
+            _Card(Icons.timer, 'Duration', '$mins', 'min', Colors.amber),
+          ],
         ),
-        _Card(
-          Icons.place,
-          'Distance',
-          dist.toStringAsFixed(2),
-          'km',
-          Colors.blueAccent,
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  await st.saveWorkout(DateTime.now());
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('Day saved')));
+                },
+                icon: const Icon(Icons.save),
+                label: const Text('Save day'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _showAddDialog(context),
+                icon: const Icon(Icons.add),
+                label: const Text('Add steps'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        _Card(Icons.timer, 'Duration', '$min', 'min', Colors.amber),
       ],
     );
   }

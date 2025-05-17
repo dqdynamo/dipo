@@ -2,8 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diploma/models/workout_session.dart';
 
 class WorkoutService {
-  final CollectionReference workouts =
-    FirebaseFirestore.instance.collection('workouts');
+  final CollectionReference workouts = FirebaseFirestore.instance.collection(
+    'workouts',
+  );
 
   Future<void> saveWorkout(WorkoutSession workout) async {
     await workouts.add(workout.toMap());
@@ -17,4 +18,3 @@ class WorkoutService {
     });
   }
 }
-

@@ -14,10 +14,12 @@ class WorkoutHistoryScreen extends StatelessWidget {
       body: StreamBuilder<List<WorkoutSession>>(
         stream: _workoutService.getWorkouts(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData)
+            return const Center(child: CircularProgressIndicator());
 
           final workouts = snapshot.data!;
-          if (workouts.isEmpty) return const Center(child: Text("Нет записанных тренировок"));
+          if (workouts.isEmpty)
+            return const Center(child: Text("Нет записанных тренировок"));
 
           return ListView.builder(
             itemCount: workouts.length,

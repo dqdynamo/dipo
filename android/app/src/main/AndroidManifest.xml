@@ -2,6 +2,13 @@
     <!-- Добавляем разрешения на шагомер -->
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
     <uses-permission android:name="android.permission.BODY_SENSORS"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!--  Android 12+ -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+
 
     <application
         android:label="diploma"

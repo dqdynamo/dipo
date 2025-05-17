@@ -11,9 +11,24 @@ class WorkoutsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          _buildWorkoutCard("Кардио тренировка", "30 минут", Icons.favorite, Colors.red),
-          _buildWorkoutCard("Силовая тренировка", "45 минут", Icons.fitness_center, Colors.blue),
-          _buildWorkoutCard("Йога", "20 минут", Icons.self_improvement, Colors.green),
+          _buildWorkoutCard(
+            "Кардио тренировка",
+            "30 минут",
+            Icons.favorite,
+            Colors.red,
+          ),
+          _buildWorkoutCard(
+            "Силовая тренировка",
+            "45 минут",
+            Icons.fitness_center,
+            Colors.blue,
+          ),
+          _buildWorkoutCard(
+            "Йога",
+            "20 минут",
+            Icons.self_improvement,
+            Colors.green,
+          ),
           const SizedBox(height: 10), // Отступ перед историей тренировок
           _buildHistoryCard(context), // Добавляем историю тренировок
         ],
@@ -28,13 +43,21 @@ class WorkoutsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWorkoutCard(String title, String duration, IconData icon, Color color) {
+  Widget _buildWorkoutCard(
+    String title,
+    String duration,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       elevation: 3,
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: Icon(icon, color: color, size: 40),
-        title: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+        ),
         subtitle: Text(duration, style: const TextStyle(fontSize: 16)),
         trailing: IconButton(
           icon: const Icon(Icons.play_arrow, color: Colors.black),
@@ -57,7 +80,10 @@ class WorkoutsScreen extends StatelessWidget {
           "История тренировок",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
-        subtitle: const Text("Просмотреть прошедшие тренировки", style: TextStyle(fontSize: 16)),
+        subtitle: const Text(
+          "Просмотреть прошедшие тренировки",
+          style: TextStyle(fontSize: 16),
+        ),
         trailing: IconButton(
           icon: const Icon(Icons.arrow_forward, color: Colors.black),
           onPressed: () {
