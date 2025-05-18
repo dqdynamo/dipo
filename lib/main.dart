@@ -1,5 +1,5 @@
-import 'package:diploma/pages/Main/workout_history_screen.dart';
 import 'package:diploma/services/device_service.dart';
+import 'package:diploma/services/health_service.dart';
 import 'package:diploma/services/sleep_tracker_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -7,7 +7,7 @@ import 'package:diploma/pages/Authentication/splash_screen.dart';
 import 'package:diploma/pages/Authentication/login_screen.dart';
 import 'package:diploma/pages/Main/bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
-import 'package:diploma/services/step_tracker_service.dart';
+import 'package:diploma/services/activity_tracker_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -19,10 +19,12 @@ void main() async {
   await Firebase.initializeApp();
   await initializeDateFormatting('ru', null);
 
+  final healthService = HealthService();
+  await healthService.configure();
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => StepTrackerService()),
+        ChangeNotifierProvider(create: (context) => ActivityTrackerService()),
         ChangeNotifierProvider(create: (_) => SleepTrackerService()),
         ChangeNotifierProvider(create: (_) => DeviceService()),
       ],
@@ -47,7 +49,6 @@ class MyApp extends StatelessWidget {
         '/splash': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const BottomNavBarScreen(),
-        '/workout_history': (context) => WorkoutHistoryScreen(),
       },
 
 

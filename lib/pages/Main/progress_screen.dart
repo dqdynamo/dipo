@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-import '../../services/step_tracker_service.dart';
+import '../../services/activity_tracker_service.dart';
 import '../../services/sleep_tracker_service.dart';
 
 class ProgressScreen extends StatefulWidget {
@@ -22,7 +22,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     super.initState();
     _monday = _getMonday(DateTime.now());
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<StepTrackerService>().loadWeek(_monday);
+      context.read<ActivityTrackerService>().loadWeek(_monday);
       context.read<SleepTrackerService>().loadWeek(_monday);
     });
   }
@@ -42,7 +42,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     if (picked != null) {
       final mon = _getMonday(picked);
       setState(() => _monday = mon);
-      context.read<StepTrackerService>().loadWeek(mon);
+      context.read<ActivityTrackerService>().loadWeek(mon);
       context.read<SleepTrackerService>().loadWeek(mon);
     }
   }
@@ -71,7 +71,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           ),
         ),
         child: SafeArea(
-          child: Consumer2<StepTrackerService, SleepTrackerService>(
+          child: Consumer2<ActivityTrackerService, SleepTrackerService>(
             builder: (_, st, sl, __) {
               final weekSteps = st.weeklySteps(_monday); // 7 int
               final weekSleep = sl.weeklySleep(_monday); // 7 int (минуты)

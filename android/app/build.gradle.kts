@@ -5,7 +5,6 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-
 android {
     namespace = "com.example.diploma"
     compileSdk = flutter.compileSdkVersion
@@ -25,7 +24,7 @@ android {
         applicationId = "com.example.diploma"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 24
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -47,6 +46,9 @@ flutter {
 dependencies {
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
+    //import
+    implementation("com.google.android.gms:play-services-fitness:21.2.0")
+
 
 
     // TODO: Add the dependencies for Firebase products you want to use

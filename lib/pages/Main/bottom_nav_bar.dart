@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import 'device_screen.dart';
-import 'workouts_screen.dart';
 import 'progress_screen.dart';
 import 'more_screen.dart';
 

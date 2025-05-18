@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
+import 'health_service.dart';
+import 'package:health/health.dart';
 
 class SleepTrackerService extends ChangeNotifier {
   int totalMinutes = 0;
@@ -14,6 +16,8 @@ class SleepTrackerService extends ChangeNotifier {
 
   final List<int> _weekMinutes = List<int>.filled(7, 0);
   List<int> weeklySleep(DateTime _) => List.unmodifiable(_weekMinutes);
+
+  final _healthService = HealthService();
 
   CollectionReference<Map<String, dynamic>> _sleepCol() {
     final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -27,16 +31,7 @@ class SleepTrackerService extends ChangeNotifier {
 
   Future<void> loadSleepForDate(DateTime day) async {
     final snap = await _sleepCol().doc(_id(day)).get();
-    _apply(snap);
-    notifyListeners();
-  }
-
-  Future<void> loadWeek(DateTime monday) async {
-    for (int i = 0; i < 7; i++) {
-      _weekMinutes[i] = 0;
-      final snap = await _sleepCol().doc(_id(monday.add(Duration(days: i)))).get();
-      if (snap.exists) _weekMinutes[i] = snap.data()!['totalMin'] ?? 0;
-    }
+    if (snap.exists) _apply(snap);
     notifyListeners();
   }
 
@@ -49,6 +44,15 @@ class SleepTrackerService extends ChangeNotifier {
       'start': sleepStart,
       'end': sleepEnd,
     });
+  }
+
+  Future<void> loadWeek(DateTime monday) async {
+    for (int i = 0; i < 7; i++) {
+      final d = monday.add(Duration(days: i));
+      final snap = await _sleepCol().doc(_id(d)).get();
+      _weekMinutes[i] = snap.exists ? (snap.data()!['totalMin'] ?? 0) : 0;
+    }
+    notifyListeners();
   }
 
   void _apply(DocumentSnapshot snap) {
@@ -65,5 +69,25 @@ class SleepTrackerService extends ChangeNotifier {
     sleepStart = m['start'] ?? '00:00';
     sleepEnd = m['end'] ?? '00:00';
   }
-}
 
+  /// Обновить данные сна из Health
+  Future<void> refreshFromHealth() async {
+    final permissionsGranted = await _healthService.requestPermissions();
+    if (permissionsGranted && await _healthService.requestAuthorization()) {
+      final minutes = await _healthService.fetchTodaySleepMinutes();
+      totalMinutes = minutes;
+
+      // Если нужно распределение по фазам сна
+      final sleepData = await _healthService.fetchSleepData();
+      deepMinutes = sleepData.deep;
+      lightMinutes = sleepData.light;
+      wakeMinutes = sleepData.wake;
+      sleepStart = sleepData.start;
+      sleepEnd = sleepData.end;
+
+      notifyListeners();
+      await saveSleep(DateTime.now());
+    }
+  }
+
+}

@@ -1,16 +1,15 @@
-// lib/pages/device/device_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../services/device_service.dart';
+import '../../services/health_service.dart';
 import 'pair_device_screen.dart';
 
 class DeviceScreen extends StatelessWidget {
-  const DeviceScreen({Key? key}) : super(key: key);
+  const DeviceScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final ds     = context.watch<DeviceService>();
+    final ds = context.watch<DeviceService>();
     final device = ds.device;
 
     return Scaffold(
@@ -32,19 +31,20 @@ class DeviceScreen extends StatelessWidget {
                       .titleLarge
                       ?.copyWith(color: Colors.white)),
               const SizedBox(height: 20),
-
-              /* ---- карточка или плейсхолдер ---- */
+              _ConnectionSelector(),
+              const SizedBox(height: 20),
               if (device != null)
                 _DeviceCard(
                   info: device,
                   onUnpair: ds.unpair,
-                  onSync:   () async {
-                    // пока sync-метода нет ‒ просто отключим/подключим
+                  onSync: () async {
                     await ds.unpair();
-                    if (context.mounted) Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PairDeviceScreen()),
-                    );
+                    if (context.mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PairDeviceScreen()),
+                      );
+                    }
                   },
                 )
               else
@@ -57,13 +57,6 @@ class DeviceScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-
-              const SizedBox(height: 12),
-              if (device != null) ...[
-                const Divider(height: 1, color: Colors.white54),
-                _Tile(icon: Icons.apps, title: 'More'),
-                const Divider(height: 1),
-              ],
             ],
           ),
         ),
@@ -72,14 +65,80 @@ class DeviceScreen extends StatelessWidget {
   }
 }
 
-/* ───────────────── widgets ───────────────── */
+class _ConnectionSelector extends StatefulWidget {
+  @override
+  State<_ConnectionSelector> createState() => _ConnectionSelectorState();
+}
+
+class _ConnectionSelectorState extends State<_ConnectionSelector> {
+  String _mode = 'BLE';
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const Text(
+          'Выберите способ подключения:',
+          style: TextStyle(color: Colors.white, fontSize: 16),
+        ),
+        const SizedBox(height: 12),
+        ToggleButtons(
+          borderColor: Colors.white,
+          selectedBorderColor: Colors.white,
+          fillColor: Colors.white24,
+          borderRadius: BorderRadius.circular(8),
+          isSelected: [_mode == 'BLE', _mode == 'HEALTH'],
+          onPressed: (index) async {
+            setState(() {
+              _mode = index == 0 ? 'BLE' : 'HEALTH';
+            });
+
+            if (_mode == 'BLE') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PairDeviceScreen()),
+              );
+            } else {
+              final healthService = HealthService();
+              final permissionsGranted = await healthService.requestPermissions();
+              if (permissionsGranted) {
+                final authorized = await healthService.requestAuthorization();
+                final text = authorized
+                    ? 'Доступ к данным здоровья предоставлен'
+                    : 'Не удалось получить доступ к данным здоровья';
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+                }
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Разрешения не предоставлены')),
+                  );
+                }
+              }
+            }
+          },
+          children: const [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text('Bluetooth (BLE)', style: TextStyle(color: Colors.white)),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text('Google/Apple Health', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
 
 class _DeviceCard extends StatelessWidget {
   final DeviceInfo info;
   final VoidCallback onSync;
   final VoidCallback onUnpair;
-  const _DeviceCard(
-      {required this.info, required this.onSync, required this.onUnpair});
+  const _DeviceCard({required this.info, required this.onSync, required this.onUnpair});
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -99,24 +158,20 @@ class _DeviceCard extends StatelessWidget {
           const SizedBox(width: 16),
           Expanded(
             child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(info.name,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text('ID: ${info.id}',
-                      style:
-                      const TextStyle(color: Colors.white70, fontSize: 13)),
-                  Text('Battery: ${info.battery ?? '--'}%',
-                      style:
-                      const TextStyle(color: Colors.white70, fontSize: 13)),
-                  // Если позже добавите поля:
-                  // Text('FW: ${info.fwVersion}')
-                  // Text('Synced: ${DateFormat('dd/MM/yy HH:mm').format(info.syncedAt)}')
-                ]),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(info.name,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text('ID: ${info.id}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                Text('Battery: ${info.battery ?? '--'}%',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13)),
+              ],
+            ),
           ),
           PopupMenuButton<int>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
@@ -132,23 +187,6 @@ class _DeviceCard extends StatelessWidget {
         ],
       ),
     ),
-  );
-}
-
-class _Tile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Widget? trailing;
-  const _Tile({required this.icon, required this.title, this.trailing});
-
-  @override
-  Widget build(BuildContext context) => ListTile(
-    leading: Icon(icon, color: Colors.white),
-    title: Text(title,
-        style: const TextStyle(color: Colors.white, fontSize: 16)),
-    trailing:
-    trailing ?? const Icon(Icons.chevron_right, color: Colors.white),
-    onTap: () {},
   );
 }
 

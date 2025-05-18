@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'profile_screen.dart'; // Импортируем новый экран профиля
+import 'profile_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -10,20 +10,23 @@ class MoreScreen extends StatelessWidget {
     final User? user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Дополнительно")),
+      appBar: AppBar(title: const Text("More")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Профиль", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const Text(
+              "Profile",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 10),
 
-            /// Профиль теперь кнопка
+            /// Profile tile
             ListTile(
               leading: const Icon(Icons.account_circle, size: 40),
-              title: Text(user?.email ?? "Неизвестный пользователь"),
-              subtitle: const Text("Email пользователя"),
+              title: Text(user?.email ?? "Unknown user"),
+              subtitle: const Text("User email"),
               onTap: () {
                 Navigator.push(
                   context,
@@ -33,27 +36,27 @@ class MoreScreen extends StatelessWidget {
             ),
             const Divider(),
 
-            /// Пункт "Настройки"
+            /// Settings tile
             ListTile(
               leading: const Icon(Icons.settings),
-              title: const Text("Настройки"),
+              title: const Text("Settings"),
               onTap: () {
-                // TODO: Добавить переход на страницу настроек
+                // TODO: Navigate to settings screen
               },
             ),
 
-            /// Пункт "О приложении"
+            /// About tile
             ListTile(
               leading: const Icon(Icons.info),
-              title: const Text("О приложении"),
+              title: const Text("About"),
               onTap: () {
-                // TODO: Добавить переход на страницу "О приложении"
+                // TODO: Navigate to about screen
               },
             ),
 
             const Spacer(),
 
-            /// Кнопка выхода
+            /// Sign out button
             Center(
               child: ElevatedButton.icon(
                 onPressed: () async {
@@ -61,7 +64,7 @@ class MoreScreen extends StatelessWidget {
                   Navigator.pushReplacementNamed(context, '/splash');
                 },
                 icon: const Icon(Icons.logout),
-                label: const Text("Выйти"),
+                label: const Text("Sign Out"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,

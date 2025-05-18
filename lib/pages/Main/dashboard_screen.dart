@@ -5,11 +5,11 @@ import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-import '../../services/step_tracker_service.dart';
+import '../../services/activity_tracker_service.dart';
 import '../../services/sleep_tracker_service.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -26,10 +26,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<StepTrackerService>().loadWorkoutForDate(_day);
+      context.read<ActivityTrackerService>().loadActivityForDate(_day);
       context.read<SleepTrackerService>().loadSleepForDate(_day);
 
-      context.read<StepTrackerService>().loadWeek(_mondayOf(_day));
+      context.read<ActivityTrackerService>().loadWeek(_mondayOf(_day));
       context.read<SleepTrackerService>().loadWeek(_mondayOf(_day));
     });
   }
@@ -44,7 +44,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     if (picked != null) {
       setState(() => _day = picked);
-      context.read<StepTrackerService>().loadWorkoutForDate(picked);
+      context.read<ActivityTrackerService>().loadActivityForDate(picked);
       context.read<SleepTrackerService>().loadSleepForDate(picked);
     }
   }
@@ -73,7 +73,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         child: SafeArea(
-          child: Consumer2<StepTrackerService, SleepTrackerService>(
+          child: Consumer2<ActivityTrackerService, SleepTrackerService>(
             builder:
                 (_, st, sl, __) => Column(
                   children: [
@@ -217,7 +217,7 @@ class _Tab extends StatelessWidget {
 
 class _ActivityRingChart extends StatelessWidget {
   final bool showChart;
-  final StepTrackerService st;
+  final ActivityTrackerService st;
 
   const _ActivityRingChart({
     Key? key,
@@ -443,7 +443,7 @@ class _SleepRing extends StatelessWidget {
 
 /* ----- white area stats ----- */
 class _ActivityStats extends StatelessWidget {
-  final StepTrackerService st;
+  final ActivityTrackerService st;
 
   const _ActivityStats({required this.st});
 
@@ -512,7 +512,7 @@ class _ActivityStats extends StatelessWidget {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  await st.saveWorkout(DateTime.now());
+                  await st.saveActivity(DateTime.now());
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(const SnackBar(content: Text('Day saved')));

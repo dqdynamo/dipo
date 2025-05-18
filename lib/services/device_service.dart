@@ -1,9 +1,7 @@
-// lib/services/device_service.dart
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-/// Краткая информация о подключённом браслете
 class DeviceInfo {
   final String name;   // имя устройства
   final String id;     // MAC / UUID
