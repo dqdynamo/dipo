@@ -165,7 +165,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         child:
                             isAct
-                                ? _ActivityStats(st: st)
+                                ? _ActivityStats(st: st, selectedDate: _day)
                                 : _SleepStats(sl: sl),
                       ),
                     ),
@@ -444,35 +444,35 @@ class _SleepRing extends StatelessWidget {
 /* ----- white area stats ----- */
 class _ActivityStats extends StatelessWidget {
   final ActivityTrackerService st;
+  final DateTime selectedDate;
 
-  const _ActivityStats({required this.st});
+  const _ActivityStats({required this.st, required this.selectedDate});
 
   Future<void> _showAddDialog(BuildContext context) async {
     final controller = TextEditingController();
     final added = await showDialog<int>(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Add steps'),
-            content: TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(hintText: 'e.g. 500'),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  final v = int.tryParse(controller.text) ?? 0;
-                  Navigator.pop(ctx, v);
-                },
-                child: const Text('OK'),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add steps'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(hintText: 'e.g. 500'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () {
+              final v = int.tryParse(controller.text) ?? 0;
+              Navigator.pop(ctx, v);
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
     if (added != null && added > 0) {
       st.setSteps(st.steps + added);
@@ -489,20 +489,8 @@ class _ActivityStats extends StatelessWidget {
       children: [
         Row(
           children: [
-            _Card(
-              Icons.local_fire_department,
-              'Calories',
-              '$cal',
-              'kcal',
-              Colors.deepOrange,
-            ),
-            _Card(
-              Icons.place,
-              'Distance',
-              dist.toStringAsFixed(2),
-              'km',
-              Colors.blueAccent,
-            ),
+            _Card(Icons.local_fire_department, 'Calories', '$cal', 'kcal', Colors.deepOrange),
+            _Card(Icons.place, 'Distance', dist.toStringAsFixed(2), 'km', Colors.blueAccent),
             _Card(Icons.timer, 'Duration', '$mins', 'min', Colors.amber),
           ],
         ),
@@ -512,10 +500,10 @@ class _ActivityStats extends StatelessWidget {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  await st.saveActivity(DateTime.now());
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('Day saved')));
+                  await st.saveActivity(selectedDate);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Day saved')),
+                  );
                 },
                 icon: const Icon(Icons.save),
                 label: const Text('Save day'),
@@ -551,6 +539,7 @@ class _ActivityStats extends StatelessWidget {
     );
   }
 }
+
 
 class _SleepStats extends StatelessWidget {
   final SleepTrackerService sl;

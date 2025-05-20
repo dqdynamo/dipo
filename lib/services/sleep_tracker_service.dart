@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'health_service.dart';
-import 'package:health/health.dart';
+
 
 class SleepTrackerService extends ChangeNotifier {
   int totalMinutes = 0;
@@ -15,7 +15,12 @@ class SleepTrackerService extends ChangeNotifier {
   String sleepEnd = '00:00';
 
   final List<int> _weekMinutes = List<int>.filled(7, 0);
+  final List<int> _monthMinutes = List<int>.filled(31, 0);
+  final List<int> _yearMinutes = List<int>.filled(12, 0);
+
   List<int> weeklySleep(DateTime _) => List.unmodifiable(_weekMinutes);
+  List<int> monthlySleep(DateTime _) => List.unmodifiable(_monthMinutes);
+  List<int> yearlySleep(DateTime _) => List.unmodifiable(_yearMinutes);
 
   final _healthService = HealthService();
 
@@ -55,6 +60,36 @@ class SleepTrackerService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> loadMonth(DateTime monthStart) async {
+    final year = monthStart.year;
+    final month = monthStart.month;
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    for (int i = 0; i < daysInMonth; i++) {
+      final d = DateTime(year, month, i + 1);
+      final snap = await _sleepCol().doc(_id(d)).get();
+      _monthMinutes[i] = snap.exists ? (snap.data()!['totalMin'] ?? 0) as int : 0;
+    }
+    for (int i = daysInMonth; i < 31; i++) {
+      _monthMinutes[i] = 0;
+    }
+    notifyListeners();
+  }
+
+  Future<void> loadYear(int year) async {
+    for (int i = 0; i < 12; i++) {
+      final month = i + 1;
+      final daysInMonth = DateTime(year, month + 1, 0).day;
+      int totalMin = 0;
+      for (int j = 0; j < daysInMonth; j++) {
+        final d = DateTime(year, month, j + 1);
+        final snap = await _sleepCol().doc(_id(d)).get();
+        totalMin += snap.exists ? (snap.data()!['totalMin'] as num).toInt() : 0;
+      }
+      _yearMinutes[i] = totalMin;
+    }
+    notifyListeners();
+  }
+
   void _apply(DocumentSnapshot snap) {
     if (!snap.exists) {
       totalMinutes = deepMinutes = lightMinutes = wakeMinutes = 0;
@@ -70,14 +105,12 @@ class SleepTrackerService extends ChangeNotifier {
     sleepEnd = m['end'] ?? '00:00';
   }
 
-  /// Обновить данные сна из Health
   Future<void> refreshFromHealth() async {
     final permissionsGranted = await _healthService.requestPermissions();
     if (permissionsGranted && await _healthService.requestAuthorization()) {
       final minutes = await _healthService.fetchTodaySleepMinutes();
       totalMinutes = minutes;
 
-      // Если нужно распределение по фазам сна
       final sleepData = await _healthService.fetchSleepData();
       deepMinutes = sleepData.deep;
       lightMinutes = sleepData.light;
@@ -89,5 +122,4 @@ class SleepTrackerService extends ChangeNotifier {
       await saveSleep(DateTime.now());
     }
   }
-
 }

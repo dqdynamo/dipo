@@ -31,7 +31,7 @@ class DeviceScreen extends StatelessWidget {
                       .titleLarge
                       ?.copyWith(color: Colors.white)),
               const SizedBox(height: 20),
-              _ConnectionSelector(),
+              const _ConnectionSelector(),
               const SizedBox(height: 20),
               if (device != null)
                 _DeviceCard(
@@ -66,6 +66,8 @@ class DeviceScreen extends StatelessWidget {
 }
 
 class _ConnectionSelector extends StatefulWidget {
+  const _ConnectionSelector();
+
   @override
   State<_ConnectionSelector> createState() => _ConnectionSelectorState();
 }
@@ -100,21 +102,22 @@ class _ConnectionSelectorState extends State<_ConnectionSelector> {
               );
             } else {
               final healthService = HealthService();
-              final permissionsGranted = await healthService.requestPermissions();
-              if (permissionsGranted) {
-                final authorized = await healthService.requestAuthorization();
-                final text = authorized
-                    ? 'Доступ к данным здоровья предоставлен'
-                    : 'Не удалось получить доступ к данным здоровья';
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
-                }
-              } else {
+              final granted = await healthService.requestPermissions();
+              if (!granted) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Разрешения не предоставлены')),
                   );
                 }
+                return;
+              }
+
+              final authorized = await healthService.requestAuthorization();
+              final msg = authorized
+                  ? 'Доступ к данным здоровья предоставлен'
+                  : 'Не удалось получить доступ к данным здоровья';
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
               }
             }
           },
@@ -138,56 +141,63 @@ class _DeviceCard extends StatelessWidget {
   final DeviceInfo info;
   final VoidCallback onSync;
   final VoidCallback onUnpair;
-  const _DeviceCard({required this.info, required this.onSync, required this.onUnpair});
+
+  const _DeviceCard({
+    required this.info,
+    required this.onSync,
+    required this.onUnpair,
+  });
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12),
-    child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 40,
-            backgroundImage: AssetImage('assets/device_icon.png'),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(info.name,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text('ID: ${info.id}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                Text('Battery: ${info.battery ?? '--'}%',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13)),
-              ],
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const CircleAvatar(
+              radius: 40,
+              backgroundImage: AssetImage('assets/device_icon.png'),
             ),
-          ),
-          PopupMenuButton<int>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 0, child: Text('Sync now')),
-              const PopupMenuItem(value: 1, child: Text('Unpair')),
-            ],
-            onSelected: (v) {
-              if (v == 0) onSync();
-              if (v == 1) onUnpair();
-            },
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(info.name,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text('ID: ${info.id}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                  Text('Battery: ${info.battery ?? '--'}%',
+                      style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                ],
+              ),
+            ),
+            PopupMenuButton<int>(
+              icon: const Icon(Icons.more_vert, color: Colors.white),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 0, child: Text('Sync now')),
+                PopupMenuItem(value: 1, child: Text('Unpair')),
+              ],
+              onSelected: (v) {
+                if (v == 0) onSync();
+                if (v == 1) onUnpair();
+              },
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _PairPlaceholder extends StatelessWidget {
