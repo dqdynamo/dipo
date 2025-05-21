@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:health/health.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
@@ -45,8 +46,10 @@ class HealthService {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     final steps = await _health.getTotalStepsInInterval(start, now);
+    debugPrint('Шаги с $start до $now: ${steps ?? 0}');
     return steps ?? 0;
   }
+
 
   Future<double> fetchAverageHeartRate() async {
     final now = DateTime.now();
