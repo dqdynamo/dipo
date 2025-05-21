@@ -25,16 +25,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final act = context.read<ActivityTrackerService>();
-      final slp = context.read<SleepTrackerService>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ActivityTrackerService>().loadActivityForDate(_day);
+      context.read<SleepTrackerService>().loadSleepForDate(_day);
 
-      await act.refreshFromHealth(context);
-      await act.loadActivityForDate(_day);
-      await slp.loadSleepForDate(_day);
-
-      await act.loadWeek(_mondayOf(_day));
-      await slp.loadWeek(_mondayOf(_day));
+      context.read<ActivityTrackerService>().loadWeek(_mondayOf(_day));
+      context.read<SleepTrackerService>().loadWeek(_mondayOf(_day));
     });
   }
 
@@ -82,7 +78,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final act = context.read<ActivityTrackerService>();
               final slp = context.read<SleepTrackerService>();
 
-              await act.refreshFromHealth(context);
+              await act.refreshFromHealth();
               await slp.loadSleepForDate(_day);
 
               ScaffoldMessenger.of(context).showSnackBar(

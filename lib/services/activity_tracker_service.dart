@@ -4,8 +4,6 @@
   import 'package:flutter/foundation.dart';
   import 'package:intl/intl.dart';
   import 'health_service.dart';
-  import 'package:flutter/material.dart';
-
 
   class ActivityTrackerService extends ChangeNotifier {
     int _steps = 0;
@@ -115,31 +113,12 @@
       notifyListeners();
     }
 
-    Future<void> refreshFromHealth(BuildContext context) async {
+    Future<void> refreshFromHealth() async {
       final permissionsGranted = await _healthService.requestPermissions();
-
-      if (!permissionsGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Разрешения на шаги, сенсоры или локацию не предоставлены')),
-        );
-        return;
+      if (permissionsGranted && await _healthService.requestAuthorization()) {
+        final steps = await _healthService.fetchTodaySteps();
+        setSteps(steps);
+        await saveActivity(DateTime.now());
       }
-
-      final authorized = await _healthService.requestAuthorization();
-      if (!authorized) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Не удалось авторизоваться в Health Connect')),
-        );
-        return;
-      }
-
-      final steps = await _healthService.fetchTodaySteps();
-      setSteps(steps);
-      await saveActivity(DateTime.now());
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ Синхронизировано: $steps шагов')),
-      );
     }
-
   }

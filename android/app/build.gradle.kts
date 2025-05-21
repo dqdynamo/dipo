@@ -37,13 +37,6 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
-
-    sourceSets {
-        getByName("main") {
-            java.setSrcDirs(listOf("src/main/kotlin"))
-        }
-    }
-
 }
 
 flutter {
@@ -55,7 +48,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
     //import
     implementation("com.google.android.gms:play-services-fitness:21.2.0")
-    implementation("com.google.android.gms:play-services-base")
+
+
 
     // TODO: Add the dependencies for Firebase products you want to use
     // When using the BoM, don't specify versions in Firebase dependencies
