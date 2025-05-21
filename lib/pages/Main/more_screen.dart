@@ -1,3 +1,5 @@
+
+import '../../services/health_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'profile_screen.dart';
@@ -8,6 +10,7 @@ class MoreScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final User? user = FirebaseAuth.instance.currentUser;
+    final healthService = HealthService();
 
     return Scaffold(
       appBar: AppBar(title: const Text("More")),
@@ -22,7 +25,6 @@ class MoreScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            /// Profile tile
             ListTile(
               leading: const Icon(Icons.account_circle, size: 40),
               title: Text(user?.email ?? "Unknown user"),
@@ -34,29 +36,45 @@ class MoreScreen extends StatelessWidget {
                 );
               },
             ),
+
             const Divider(),
 
-            /// Settings tile
             ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text("Settings"),
-              onTap: () {
-                // TODO: Navigate to settings screen
+              leading: const Icon(Icons.favorite),
+              title: const Text("Синхронизация с Google Fit / Apple Health"),
+              onTap: () async {
+                final success = await healthService.requestAuthorization();
+                if (success) {
+                  final steps = await healthService.fetchTodaySteps();
+                  final heart = await healthService.fetchAverageHeartRate();
+                  final sleep = await healthService.fetchTodaySleepMinutes();
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Шагов: $steps | Пульс: ${heart.toStringAsFixed(1)} | Сон: $sleep мин")),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Доступ к данным не получен")),
+                  );
+                }
               },
             ),
 
-            /// About tile
+            const Divider(),
+
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text("Settings"),
+              onTap: () {},
+            ),
             ListTile(
               leading: const Icon(Icons.info),
               title: const Text("About"),
-              onTap: () {
-                // TODO: Navigate to about screen
-              },
+              onTap: () {},
             ),
 
             const Spacer(),
 
-            /// Sign out button
             Center(
               child: ElevatedButton.icon(
                 onPressed: () async {

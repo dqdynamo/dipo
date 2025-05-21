@@ -73,11 +73,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         child: SafeArea(
-          child: Consumer2<ActivityTrackerService, SleepTrackerService>(
-            builder:
-                (_, st, sl, __) => Column(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              final act = context.read<ActivityTrackerService>();
+              final slp = context.read<SleepTrackerService>();
+
+              await act.refreshFromHealth();
+              await slp.loadSleepForDate(_day);
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Обновлено: шагов ${act.steps}, сон ${slp.totalMinutes} мин")),
+              );
+            },
+            child: Consumer2<ActivityTrackerService, SleepTrackerService>(
+              builder: (_, st, sl, __) => SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
                   children: [
-                    /* ─── top bar ─── */
+                    // оставь всё как есть внутри Column
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                       child: Row(
@@ -96,10 +109,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const Icon(
-                                  Icons.arrow_drop_down,
-                                  color: Colors.white,
-                                ),
+                                const Icon(Icons.arrow_drop_down, color: Colors.white),
                               ],
                             ),
                           ),
@@ -109,29 +119,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    /* ─── ring/chart ─── */
                     GestureDetector(
                       onTap: () {
                         if (isAct) setState(() => _showChart = !_showChart);
                       },
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 350),
-                        child:
-                            isAct
-                                ? _ActivityRingChart(
-                                  key: ValueKey(_showChart),
-                                  showChart: _showChart,
-                                  st: st,
-                                )
-                                : _SleepRing(
-                                  key: const ValueKey('sleep'),
-                                  sl: sl,
-                                ),
+                        child: isAct
+                            ? _ActivityRingChart(
+                          key: ValueKey(_showChart),
+                          showChart: _showChart,
+                          st: st,
+                        )
+                            : _SleepRing(
+                          key: const ValueKey('sleep'),
+                          sl: sl,
+                        ),
                       ),
                     ),
-
-                    /* ─── tabs ─── */
                     Row(
                       children: [
                         _Tab('Activity', isAct, () {
@@ -148,32 +153,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         }),
                       ],
                     ),
-
-                    /* ─── white bottom ─── */
-                    Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 22,
-                        ),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(26),
-                          ),
-                        ),
-                        child:
-                            isAct
-                                ? _ActivityStats(st: st, selectedDate: _day)
-                                : _SleepStats(sl: sl),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
                       ),
+                      child: isAct
+                          ? _ActivityStats(st: st, selectedDate: _day)
+                          : _SleepStats(sl: sl),
                     ),
                   ],
                 ),
+              ),
+            ),
           ),
         ),
       ),
+
     );
   }
 }
