@@ -177,13 +177,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 12, right: 12, top: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: _buildLabels(),
-                    ),
-                  ),
                   Row(
                     children: [
                       _Tab('Activity', isAct, () {
@@ -383,7 +376,23 @@ class _Chart extends StatelessWidget {
           ),
           rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
           topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              reservedSize: 30,
+              getTitlesWidget: (value, meta) {
+                final day = value.toInt() + 1;
+                const visibleDays = [1, 7, 13, 19, 25, 31];
+                return visibleDays.contains(day)
+                    ? Text(
+                  '$day',
+                  style: const TextStyle(color: Colors.white70, fontSize: 10),
+                )
+                    : const SizedBox.shrink();
+              },
+            ),
+          ),
         ),
         borderData: FlBorderData(show: false),
         lineBarsData: [
