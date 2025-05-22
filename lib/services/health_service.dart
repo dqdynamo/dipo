@@ -51,7 +51,7 @@ class HealthService {
       HealthDataType.SLEEP_DEEP,
       HealthDataType.DISTANCE_DELTA,
       HealthDataType.ACTIVE_ENERGY_BURNED,
-      HealthDataType.EXERCISE_TIME,
+      // HealthDataType.EXERCISE_TIME,
     ];
 
     final perms = types.map((_) => HealthDataAccess.READ).toList();
