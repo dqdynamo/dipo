@@ -129,6 +129,7 @@ class ActivityTrackerService extends ChangeNotifier {
   }
 
   Future<void> refreshFromHealth() async {
+    print("🔄 refreshFromHealth called");
     final permissionsGranted = await _healthService.requestPermissions();
     if (permissionsGranted && await _healthService.requestAuthorization()) {
       _steps = await _healthService.fetchTodaySteps();
@@ -137,6 +138,7 @@ class ActivityTrackerService extends ChangeNotifier {
       _activeMinutes = await _healthService.fetchTodayMoveMinutes();
       _avgHeartRate = (await _healthService.fetchAverageHeartRate()).toInt();
 
+      print("📤 Saving activity for ${DateTime.now()} — steps: $_steps, distance: $_distance, calories: $_calories");
       await saveActivity(DateTime.now());
       notifyListeners();
     } else {

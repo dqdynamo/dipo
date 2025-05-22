@@ -26,6 +26,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   DateTime _mondayOf(DateTime d) => d.subtract(Duration(days: d.weekday - 1));
 
+  void _showAddStepsDialog(BuildContext context) {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Add Steps'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Number of steps',
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: const Text('Add'),
+            onPressed: () {
+              final input = int.tryParse(controller.text);
+              if (input != null && input > 0) {
+                final tracker = context.read<ActivityTrackerService>();
+                tracker.setSteps(tracker.steps + input); // Only update locally
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Added $input steps')),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+
   @override
   void initState() {
     super.initState();
@@ -86,12 +125,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onRefresh: () async {
               final act = context.read<ActivityTrackerService>();
               final slp = context.read<SleepTrackerService>();
+
               await act.refreshFromHealth();
               await slp.refreshFromHealth();
+
+              // Save both updated records to Firestore
+              await act.saveActivity(_day);
+              await slp.saveSleep(_day);
+
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    "Обновлено: шагов ${act.steps}, сон ${slp.totalMinutes} мин, пульс ${act.avgHeartRate} bpm",
+                    "Updated: ${act.steps} steps, ${slp.totalMinutes} min sleep, ${act.avgHeartRate} bpm",
                   ),
                 ),
               );
@@ -135,6 +180,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Share.share(shareText);
                                 },
                               ),
+
+                              IconButton(
+                                icon: const Icon(Icons.add, color: Colors.white),
+                                onPressed: () => _showAddStepsDialog(context),
+                              ),
+
 
                               const Spacer(),
                               GestureDetector(
