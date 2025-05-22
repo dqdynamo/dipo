@@ -46,6 +46,7 @@ class ActivityTrackerService extends ChangeNotifier {
       final m = doc.data()!;
       _steps = m['steps'] ?? 0;
       _hourly = (m['hourly'] as List<dynamic>? ?? List.filled(24, 0)).cast<int>();
+      _steps  = _hourly.fold<int>(0, (s, e) => s + e);
       _distance = (m['distance'] ?? 0).toDouble();
       _activeMinutes = m['activeMinutes'] ?? 0;
       _avgHeartRate = m['heartRate'] ?? 0;
@@ -58,6 +59,8 @@ class ActivityTrackerService extends ChangeNotifier {
         _calories = await _healthService.fetchCaloriesForDate(day);
         _activeMinutes = await _healthService.fetchTodayMoveMinutesForDate(day);
         _avgHeartRate = (await _healthService.fetchAverageHeartRateForDate(day)).toInt();
+        _hourly       = await _healthService.fetchHourlyStepsForDate(day);
+        _steps        = _hourly.fold<int>(0, (s, e) => s + e);
         await saveActivity(day);
       } else {
         _steps = 0;
@@ -137,6 +140,8 @@ class ActivityTrackerService extends ChangeNotifier {
       _calories = await _healthService.fetchTodayCalories();
       _activeMinutes = await _healthService.fetchTodayMoveMinutes();
       _avgHeartRate = (await _healthService.fetchAverageHeartRate()).toInt();
+      _hourly        = await _healthService.fetchHourlyStepsForDate(DateTime.now());
+      _steps        = _hourly.fold<int>(0, (s, e) => s + e);
 
       print("📤 Saving activity for ${DateTime.now()} — steps: $_steps, distance: $_distance, calories: $_calories");
       await saveActivity(DateTime.now());
@@ -144,5 +149,13 @@ class ActivityTrackerService extends ChangeNotifier {
     } else {
       debugPrint('Health permissions not granted');
     }
+  }
+
+  /// Adds steps to both the daily total and the current hour.
+  void addSteps(int delta) {
+    final h = DateTime.now().hour;
+    _steps  += delta;
+    _hourly[h] += delta;
+    notifyListeners();
   }
 }

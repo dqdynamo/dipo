@@ -190,4 +190,17 @@ class HealthService {
       end: endStr,
     );
   }
+
+  /// 24-element list with steps for each hour of the given day
+  Future<List<int>> fetchHourlyStepsForDate(DateTime day) async {
+    final result = List<int>.filled(24, 0);
+    for (int h = 0; h < 24; h++) {
+      final from = DateTime(day.year, day.month, day.day, h);
+      final to   = from.add(const Duration(hours: 1));
+      final steps = await _health.getTotalStepsInInterval(from, to);
+      result[h] = steps ?? 0;
+    }
+    return result;
+  }
+
 }

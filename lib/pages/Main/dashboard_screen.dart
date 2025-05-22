@@ -51,7 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final input = int.tryParse(controller.text);
               if (input != null && input > 0) {
                 final tracker = context.read<ActivityTrackerService>();
-                tracker.setSteps(tracker.steps + input); // Only update locally
+                tracker.addSteps(input);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Added $input steps')),
@@ -516,7 +516,7 @@ class _ActivityRingChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext ctx) {
-    if (showChart) return _Bar(steps: st.stepsByHour);
+    if (showChart) return _HourlyStepsChart(stepsByHour: st.stepsByHour);
     final pct = (st.steps / goalSteps).clamp(0.0, 1.0);
     return SizedBox(
       height: 260,
@@ -557,96 +557,87 @@ class _ActivityRingChart extends StatelessWidget {
   }
 }
 
-class _Bar extends StatelessWidget {
-  final List<int> steps;
-
-  const _Bar({required this.steps});
+class _HourlyStepsChart extends StatelessWidget {
+  final List<int> stepsByHour;
+  const _HourlyStepsChart({required this.stepsByHour});
 
   @override
-  Widget build(BuildContext ctx) {
-    final max = steps.fold<int>(0, (p, e) => e > p ? e : p);
+  Widget build(BuildContext context) {
+    final max = stepsByHour.reduce((a, b) => a > b ? a : b);
     final maxY = ((max + 199) ~/ 200) * 200 + 200;
-    return Column(
-      children: [
-        SizedBox(
-          height: 210,
-          child: BarChart(
-            BarChartData(
-              maxY: maxY.toDouble(),
-              barTouchData: BarTouchData(enabled: false),
-              gridData: FlGridData(
-                horizontalInterval: maxY / 3,
-                drawVerticalLine: false,
-                getDrawingHorizontalLine:
-                    (v) => FlLine(color: Colors.white30, strokeWidth: 1),
-              ),
-              titlesData: FlTitlesData(
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    reservedSize: 40,
-                    interval: maxY / 3,
-                    showTitles: true,
-                    getTitlesWidget:
-                        (v, _) => Text(
-                          v.toInt().toString(),
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                          ),
-                        ),
-                  ),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    interval: 4,
-                    showTitles: true,
-                    getTitlesWidget:
-                        (v, _) => Text(
-                          '${v.toInt()}',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
-                        ),
-                  ),
-                ),
-                topTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                rightTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
+
+    return SizedBox(
+      height: 210,
+      child: LineChart(
+        LineChartData(
+          minY: 0,
+          maxY: maxY.toDouble(),
+          gridData: FlGridData(
+            show: true,
+            horizontalInterval: maxY / 3,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (v) =>
+                FlLine(color: Colors.white24, strokeWidth: 1),
+          ),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                reservedSize: 38,
+                interval: maxY / 3,
+                showTitles: true,
+                getTitlesWidget: (v, _) => Text(
+                  v.toInt().toString(),
+                  style: const TextStyle(color: Colors.white60, fontSize: 12),
                 ),
               ),
-              borderData: FlBorderData(show: false),
-              barGroups: [
-                for (int i = 0; i < 24; i++)
-                  BarChartGroupData(
-                    x: i,
-                    barRods: [
-                      BarChartRodData(
-                        toY: steps[i].toDouble(),
-                        width: 4,
-                        color: Colors.white.withOpacity(
-                          steps[i] > 0 ? 0.9 : 0.15,
-                        ),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ],
-                  ),
-              ],
             ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 20,
+                interval: 1,
+                getTitlesWidget: (value, meta) {
+                  final v = value.toInt();
+                  if (v % 4 != 0 && v != 23) {
+                    return const SizedBox.shrink();
+                  }
+                  return Text(
+                    '$v',
+                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  );
+                },
+              ),
+            ),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
           ),
+          borderData: FlBorderData(show: false),
+          lineBarsData: [
+            LineChartBarData(
+              spots: List.generate(
+                stepsByHour.length,
+                    (i) => FlSpot(i.toDouble(), stepsByHour[i].toDouble()),
+              ),
+              isCurved: false,
+              barWidth: 2,
+              color: Colors.white,
+              dotData: FlDotData(
+                show: true,
+                checkToShowDot: (spot, barData) => true,
+                getDotPainter: (spot, percent, barData, index) =>
+                    FlDotCirclePainter(
+                      radius: 3,
+                      color: Colors.white,
+                      strokeColor: Colors.white,
+                      strokeWidth: 0,
+                    ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          '${steps.fold<int>(0, (s, e) => s + e)} steps',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
+
+
