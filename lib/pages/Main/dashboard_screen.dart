@@ -4,9 +4,12 @@ import 'package:intl/intl.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../services/activity_tracker_service.dart';
+import '../../services/goal_service.dart';
 import '../../services/sleep_tracker_service.dart';
+import 'goal_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -19,13 +22,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _tab = 0;
   bool _showChart = false;
   DateTime _day = DateTime.now();
+  int _goalSteps = 10000;
 
   DateTime _mondayOf(DateTime d) => d.subtract(Duration(days: d.weekday - 1));
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final goalService = GoalService();
+      final goal = await goalService.loadGoals();
+      setState(() {
+        _goalSteps = goal.steps;
+      });
+
       context.read<ActivityTrackerService>().loadActivityForDate(_day);
       context.read<SleepTrackerService>().loadSleepForDate(_day);
       context.read<ActivityTrackerService>().loadWeek(_mondayOf(_day));
@@ -57,9 +67,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final isAct = _tab == 0;
-    final grad = isAct
-        ? const [Color(0xFFFF9240), Color(0xFFDD4733)]
-        : const [Color(0xFF35B4FF), Color(0xFF0D63C9)];
+    final grad =
+        isAct
+            ? const [Color(0xFFFF9240), Color(0xFFDD4733)]
+            : const [Color(0xFF35B4FF), Color(0xFF0D63C9)];
 
     return Scaffold(
       body: Container(
@@ -78,99 +89,188 @@ class _DashboardScreenState extends State<DashboardScreen> {
               await act.refreshFromHealth();
               await slp.loadSleepForDate(_day);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Обновлено: шагов ${act.steps}, сон ${slp.totalMinutes} мин, пульс ${act.avgHeartRate} bpm")),
+                SnackBar(
+                  content: Text(
+                    "Обновлено: шагов ${act.steps}, сон ${slp.totalMinutes} мин, пульс ${act.avgHeartRate} bpm",
+                  ),
+                ),
               );
             },
             child: Consumer2<ActivityTrackerService, SleepTrackerService>(
-              builder: (_, st, sl, __) => SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.share, color: Colors.white),
-                          const Spacer(),
-                          GestureDetector(
-                            onTap: _pickDate,
-                            child: Row(
-                              children: [
-                                Text(
-                                  _label,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+              builder:
+                  (_, st, sl, __) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.share,
+                                  color: Colors.white,
                                 ),
-                                const Icon(Icons.arrow_drop_down, color: Colors.white),
-                              ],
+                                onPressed: () {
+                                  final activity =
+                                      context.read<ActivityTrackerService>();
+                                  final sleep =
+                                      context.read<SleepTrackerService>();
+
+                                  final sleepHours =
+                                      (sleep.totalMinutes / 60).floor();
+                                  final sleepMinutes = sleep.totalMinutes % 60;
+
+                                  final shareText = '''
+📊 My fitness progress today:
+
+🚶 Steps: ${activity.steps}
+🔥 Calories: ${activity.calories} kcal
+🛌 Sleep: ${sleepHours}h ${sleepMinutes}m
+❤️ Heart rate: ${activity.avgHeartRate} bpm
+
+#MyFitnessStats
+''';
+
+                                  Share.share(shareText);
+                                },
+                              ),
+
+                              const Spacer(),
+                              GestureDetector(
+                                onTap: _pickDate,
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      _label,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.arrow_drop_down,
+                                      color: Colors.white,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.flag,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const GoalScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () {
+                            if (isAct) setState(() => _showChart = !_showChart);
+                          },
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 350),
+                            child:
+                                isAct
+                                    ? _ActivityRingChart(
+                                      key: ValueKey(_showChart),
+                                      showChart: _showChart,
+                                      st: st,
+                                      goalSteps: _goalSteps,
+                                    )
+                                    : _SleepRing(
+                                      key: const ValueKey('sleep'),
+                                      sl: sl,
+                                    ),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            _Tab('Activity', isAct, () {
+                              setState(() {
+                                _tab = 0;
+                                _showChart = false;
+                              });
+                            }),
+                            _Tab('Sleep', !isAct, () {
+                              setState(() {
+                                _tab = 1;
+                                _showChart = false;
+                              });
+                            }),
+                          ],
+                        ),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 22,
+                          ),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(26),
                             ),
                           ),
-                          const Spacer(),
-                          const Icon(Icons.settings, color: Colors.white),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    GestureDetector(
-                      onTap: () {
-                        if (isAct) setState(() => _showChart = !_showChart);
-                      },
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 350),
-                        child: isAct
-                            ? _ActivityRingChart(key: ValueKey(_showChart), showChart: _showChart, st: st)
-                            : _SleepRing(key: const ValueKey('sleep'), sl: sl),
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        _Tab('Activity', isAct, () {
-                          setState(() {
-                            _tab = 0;
-                            _showChart = false;
-                          });
-                        }),
-                        _Tab('Sleep', !isAct, () {
-                          setState(() {
-                            _tab = 1;
-                            _showChart = false;
-                          });
-                        }),
+                          child:
+                              isAct
+                                  ? Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          _Card(
+                                            Icons.local_fire_department,
+                                            'Calories',
+                                            st.calories.toString(),
+                                            'kcal',
+                                            Colors.deepOrange,
+                                          ),
+                                          _Card(
+                                            Icons.place,
+                                            'Distance',
+                                            st.distance.toStringAsFixed(2),
+                                            'km',
+                                            Colors.blueAccent,
+                                          ),
+                                          _Card(
+                                            Icons.timer,
+                                            'Duration',
+                                            st.activeMinutes.toString(),
+                                            'min',
+                                            Colors.amber,
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 18),
+                                      Row(
+                                        children: [
+                                          _Card(
+                                            Icons.favorite,
+                                            'Heart Rate',
+                                            st.avgHeartRate.toString(),
+                                            'bpm',
+                                            Colors.redAccent,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                  : _SleepStats(sl: sl),
+                        ),
                       ],
                     ),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-                      ),
-                      child: isAct
-                          ? Column(
-                        children: [
-                          Row(
-                            children: [
-                              _Card(Icons.local_fire_department, 'Calories', st.calories.toString(), 'kcal', Colors.deepOrange),
-                              _Card(Icons.place, 'Distance', st.distance.toStringAsFixed(2), 'km', Colors.blueAccent),
-                              _Card(Icons.timer, 'Duration', st.activeMinutes.toString(), 'min', Colors.amber),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-                          Row(
-                            children: [
-                              _Card(Icons.favorite, 'Heart Rate', st.avgHeartRate.toString(), 'bpm', Colors.redAccent),
-                            ],
-                          ),
-                        ],
-                      )
-                          : _SleepStats(sl: sl),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
             ),
           ),
         ),
@@ -193,11 +293,14 @@ class _Tab extends StatelessWidget {
       child: Container(
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: sel
-            ? const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.white, width: 3)),
-        )
-            : null,
+        decoration:
+            sel
+                ? const BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.white, width: 3),
+                  ),
+                )
+                : null,
         child: Text(
           text,
           style: TextStyle(
@@ -231,15 +334,25 @@ class _Card extends StatelessWidget {
         children: [
           Icon(ic, color: col, size: 30),
           const SizedBox(height: 6),
-          Text(label, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 14, color: Colors.black54),
+          ),
           RichText(
             text: TextSpan(
               text: val,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
               children: [
                 TextSpan(
                   text: unit,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.normal,
+                  ),
                 ),
               ],
             ),
@@ -258,13 +371,32 @@ class _SleepStats extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      _Card(Icons.bedtime, 'Deep', _f(sl.deepMinutes), '', const Color(0xFF536DFE)),
-      _Card(Icons.hotel, 'Light', _f(sl.lightMinutes), '', const Color(0xFF18FFFF)),
-      _Card(Icons.wb_sunny, 'Awake', _f(sl.wakeMinutes), '', const Color(0xFFFFB300)),
+      _Card(
+        Icons.bedtime,
+        'Deep',
+        _f(sl.deepMinutes),
+        '',
+        const Color(0xFF536DFE),
+      ),
+      _Card(
+        Icons.hotel,
+        'Light',
+        _f(sl.lightMinutes),
+        '',
+        const Color(0xFF18FFFF),
+      ),
+      _Card(
+        Icons.wb_sunny,
+        'Awake',
+        _f(sl.wakeMinutes),
+        '',
+        const Color(0xFFFFB300),
+      ),
     ],
   );
 
-  String _f(int m) => '${(m / 60).floor()}h${(m % 60).toString().padLeft(2, '0')}m';
+  String _f(int m) =>
+      '${(m / 60).floor()}h${(m % 60).toString().padLeft(2, '0')}m';
 }
 
 class _SleepRing extends StatelessWidget {
@@ -303,8 +435,14 @@ class _SleepRing extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Text('Start: ${sl.sleepStart}', style: const TextStyle(color: Colors.white70, fontSize: 14)),
-              Text('End:   ${sl.sleepEnd}', style: const TextStyle(color: Colors.white70, fontSize: 14)),
+              Text(
+                'Start: ${sl.sleepStart}',
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              Text(
+                'End:   ${sl.sleepEnd}',
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
             ],
           ),
         ],
@@ -316,13 +454,19 @@ class _SleepRing extends StatelessWidget {
 class _ActivityRingChart extends StatelessWidget {
   final bool showChart;
   final ActivityTrackerService st;
+  final int goalSteps;
 
-  const _ActivityRingChart({super.key, required this.showChart, required this.st});
+  const _ActivityRingChart({
+    super.key,
+    required this.showChart,
+    required this.st,
+    required this.goalSteps,
+  });
 
   @override
   Widget build(BuildContext ctx) {
     if (showChart) return _Bar(steps: st.stepsByHour);
-    final pct = (st.steps / 10000).clamp(0.0, 1.0);
+    final pct = (st.steps / goalSteps).clamp(0.0, 1.0);
     return SizedBox(
       height: 260,
       child: CircularPercentIndicator(
@@ -337,12 +481,23 @@ class _ActivityRingChart extends StatelessWidget {
           children: [
             const Icon(Icons.directions_walk, color: Colors.white, size: 36),
             const SizedBox(height: 8),
-            Text('${st.steps}', style: const TextStyle(fontSize: 50, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text(
+              '${st.steps}',
+              style: const TextStyle(fontSize: 50, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-              margin: const EdgeInsets.only(top: 4),
+              margin: const EdgeInsets.only(top: 4, bottom: 4),
               decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(14)),
               child: const Text('steps', style: TextStyle(color: Colors.white, fontSize: 14)),
+            ),
+            Text(
+              'Goal: $goalSteps',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            Text(
+              'Completed: ${(100 * (st.steps / goalSteps).clamp(0, 1)).round()}%',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
           ],
         ),
@@ -371,7 +526,8 @@ class _Bar extends StatelessWidget {
               gridData: FlGridData(
                 horizontalInterval: maxY / 3,
                 drawVerticalLine: false,
-                getDrawingHorizontalLine: (v) => FlLine(color: Colors.white30, strokeWidth: 1),
+                getDrawingHorizontalLine:
+                    (v) => FlLine(color: Colors.white30, strokeWidth: 1),
               ),
               titlesData: FlTitlesData(
                 leftTitles: AxisTitles(
@@ -379,24 +535,36 @@ class _Bar extends StatelessWidget {
                     reservedSize: 40,
                     interval: maxY / 3,
                     showTitles: true,
-                    getTitlesWidget: (v, _) => Text(
-                      v.toInt().toString(),
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
+                    getTitlesWidget:
+                        (v, _) => Text(
+                          v.toInt().toString(),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
                   ),
                 ),
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     interval: 4,
                     showTitles: true,
-                    getTitlesWidget: (v, _) => Text(
-                      '${v.toInt()}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
+                    getTitlesWidget:
+                        (v, _) => Text(
+                          '${v.toInt()}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
                   ),
                 ),
-                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
               ),
               borderData: FlBorderData(show: false),
               barGroups: [
@@ -407,7 +575,9 @@ class _Bar extends StatelessWidget {
                       BarChartRodData(
                         toY: steps[i].toDouble(),
                         width: 4,
-                        color: Colors.white.withOpacity(steps[i] > 0 ? 0.9 : 0.15),
+                        color: Colors.white.withOpacity(
+                          steps[i] > 0 ? 0.9 : 0.15,
+                        ),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ],
@@ -419,7 +589,11 @@ class _Bar extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '${steps.fold<int>(0, (s, e) => s + e)} steps',
-          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );

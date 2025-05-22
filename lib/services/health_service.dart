@@ -40,6 +40,8 @@ class HealthService {
   }
 
   Future<bool> requestAuthorization() async {
+    print("🔐 Starting authorization request...");
+
     final types = <HealthDataType>[
       HealthDataType.STEPS,
       HealthDataType.HEART_RATE,
@@ -55,10 +57,19 @@ class HealthService {
     final perms = types.map((_) => HealthDataAccess.READ).toList();
 
     final granted = await requestPermissions();
-    if (!granted) return false;
+    print("✅ Android permissions granted: $granted");
 
-    return await _health.requestAuthorization(types, permissions: perms);
+    if (!granted) {
+      print("❌ Android permissions denied.");
+      return false;
+    }
+
+    final authorized = await _health.requestAuthorization(types, permissions: perms);
+    print("📲 Health Connect authorization result: $authorized");
+
+    return authorized;
   }
+
 
   Future<int> fetchTodaySteps() async {
     return await fetchStepsForDate(DateTime.now());

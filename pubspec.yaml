@@ -53,6 +53,7 @@ dependencies:
   provider: ^6.1.2
   getwidget: ^6.0.0
   percent_indicator: ^4.2.3
+  share_plus: ^7.2.1
   health:
     git:
       url: https://github.com/cph-cachet/flutter-plugins

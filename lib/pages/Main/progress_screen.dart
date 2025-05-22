@@ -82,14 +82,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final isAct = _tab == 0;
-    final grad = isAct
-        ? const [Color(0xFFFF9240), Color(0xFFDD4733)]
-        : const [Color(0xFF35B4FF), Color(0xFF0D63C9)];
+    final grad =
+        isAct
+            ? const [Color(0xFFFF9240), Color(0xFFDD4733)]
+            : const [Color(0xFF35B4FF), Color(0xFF0D63C9)];
 
     return Scaffold(
       body: Container(
@@ -108,17 +107,24 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 case 0:
                   final monday = _getMonday(_selectedDate);
                   data =
-                  isAct ? st.weeklySteps(monday) : sl.weeklySleep(monday);
+                      isAct ? st.weeklySteps(monday) : sl.weeklySleep(monday);
                   break;
                 case 1:
                   final monthStart = DateTime(
-                      _selectedDate.year, _selectedDate.month);
-                  data = isAct ? st.monthlySteps(monthStart) : sl.monthlySleep(
-                      monthStart);
+                    _selectedDate.year,
+                    _selectedDate.month,
+                  );
+                  data =
+                      isAct
+                          ? st.monthlySteps(monthStart)
+                          : sl.monthlySleep(monthStart);
                   break;
                 case 2:
                   final year = _selectedDate.year;
-                  data = isAct ? st.yearlySteps(year) : sl.yearlySleep(DateTime(year));
+                  data =
+                      isAct
+                          ? st.yearlySteps(year)
+                          : sl.yearlySleep(DateTime(year));
                   break;
                 default:
                   data = [];
@@ -177,13 +183,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 12, right: 12, top: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: _buildLabels(),
-                    ),
-                  ),
                   Row(
                     children: [
                       _Tab('Activity', isAct, () {
@@ -224,9 +223,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
                           top: Radius.circular(26),
                         ),
                       ),
-                      child: isAct
-                          ? _ActivityStats(data: data, period: _period)
-                          : _SleepStats(data: data, period: _period),
+                      child:
+                          isAct
+                              ? _ActivityStats(data: data, period: _period)
+                              : _SleepStats(data: data, period: _period),
                     ),
                   ),
                 ],
@@ -251,8 +251,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
           _Day('Sun'),
         ];
       case 1:
-        final daysInMonth = DateTime(
-            _selectedDate.year, _selectedDate.month + 1, 0).day;
+        final daysInMonth =
+            DateTime(_selectedDate.year, _selectedDate.month + 1, 0).day;
         return List.generate(daysInMonth, (i) => _Day('${i + 1}'));
       case 2:
         return const [
@@ -293,31 +293,31 @@ class _Tab extends StatelessWidget {
   const _Tab(this.t, this.sel, this.tap);
 
   @override
-  Widget build(BuildContext c) =>
-      Expanded(
-        child: GestureDetector(
-          onTap: tap,
-          child: Container(
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: sel
+  Widget build(BuildContext c) => Expanded(
+    child: GestureDetector(
+      onTap: tap,
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration:
+            sel
                 ? const BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.white, width: 3),
-              ),
-            )
+                  border: Border(
+                    bottom: BorderSide(color: Colors.white, width: 3),
+                  ),
+                )
                 : null,
-            child: Text(
-              t,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+        child: Text(
+          t,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _PeriodButton extends StatelessWidget {
@@ -366,8 +366,8 @@ class _Chart extends StatelessWidget {
           show: true,
           horizontalInterval: maxY / 4,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (v) =>
-              FlLine(color: Colors.white24, strokeWidth: 1),
+          getDrawingHorizontalLine:
+              (v) => FlLine(color: Colors.white24, strokeWidth: 1),
         ),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
@@ -375,30 +375,90 @@ class _Chart extends StatelessWidget {
               reservedSize: 40,
               interval: maxY / 4,
               showTitles: true,
-              getTitlesWidget: (v, _) => Text(
-                v.toInt().toString(),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
+              getTitlesWidget:
+                  (v, _) => Text(
+                    v.toInt().toString(),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
             ),
           ),
           rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
           topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 1,
+              getTitlesWidget: (value, _) {
+                final index = value.toInt();
+                String text = '';
+
+                switch (period) {
+                  case 0:
+                    const weekDays = [
+                      'Mon',
+                      'Tue',
+                      'Wed',
+                      'Thu',
+                      'Fri',
+                      'Sat',
+                      'Sun',
+                    ];
+                    if (index >= 0 && index < weekDays.length) {
+                      text = weekDays[index];
+                    }
+                    break;
+                  case 1:
+                    const shownDays = [0, 6, 12, 18, 24, 30];
+                    if (shownDays.contains(index)) {
+                      text = '${index + 1}';
+                    }
+                    break;
+                  case 2:
+                    const months = [
+                      'Jan',
+                      'Feb',
+                      'Mar',
+                      'Apr',
+                      'May',
+                      'Jun',
+                      'Jul',
+                      'Aug',
+                      'Sep',
+                      'Oct',
+                      'Nov',
+                      'Dec',
+                    ];
+                    if (index >= 0 && index < months.length) {
+                      text = months[index];
+                    }
+                    break;
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    text,
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+                );
+              },
+            ),
+          ),
         ),
         borderData: FlBorderData(show: false),
         lineBarsData: [
           LineChartBarData(
             spots: List.generate(
               data.length,
-                  (i) => FlSpot(i.toDouble(), data[i].toDouble()),
+              (i) => FlSpot(i.toDouble(), data[i].toDouble()),
             ),
             isCurved: false,
             barWidth: 2,
             color: Colors.white,
             dotData: FlDotData(
               show: true,
-              getDotPainter: (spot, percent, barData, index) =>
-                  FlDotCirclePainter(
+              getDotPainter:
+                  (spot, percent, barData, index) => FlDotCirclePainter(
                     radius: 3,
                     color: Colors.white,
                     strokeColor: Colors.white,
@@ -453,7 +513,6 @@ class _Item extends StatelessWidget {
     ),
   );
 }
-
 
 class _ActivityStats extends StatelessWidget {
   final List<int> data;
