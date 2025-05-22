@@ -87,7 +87,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final act = context.read<ActivityTrackerService>();
               final slp = context.read<SleepTrackerService>();
               await act.refreshFromHealth();
-              await slp.loadSleepForDate(_day);
+              await slp.refreshFromHealth();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
