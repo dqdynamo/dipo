@@ -1,7 +1,22 @@
-import 'package:flutter/cupertino.dart';
 import 'package:health/health.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
+
+class SleepData {
+  final int deep;
+  final int light;
+  final int wake;
+  final String start;
+  final String end;
+
+  SleepData({
+    required this.deep,
+    required this.light,
+    required this.wake,
+    required this.start,
+    required this.end,
+  });
+}
 
 class HealthService {
   final Health _health = Health();
@@ -32,6 +47,9 @@ class HealthService {
       HealthDataType.SLEEP_AWAKE,
       HealthDataType.SLEEP_LIGHT,
       HealthDataType.SLEEP_DEEP,
+      HealthDataType.DISTANCE_DELTA,
+      HealthDataType.ACTIVE_ENERGY_BURNED,
+      HealthDataType.EXERCISE_TIME,
     ];
 
     final perms = types.map((_) => HealthDataAccess.READ).toList();
@@ -43,60 +61,95 @@ class HealthService {
   }
 
   Future<int> fetchTodaySteps() async {
-    final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day);
-    final steps = await _health.getTotalStepsInInterval(start, now);
-    debugPrint('Шаги с $start до $now: ${steps ?? 0}');
-    return steps ?? 0;
+    return await fetchStepsForDate(DateTime.now());
   }
 
+  Future<int> fetchTodayCalories() async {
+    return await fetchCaloriesForDate(DateTime.now());
+  }
 
-  Future<double> fetchAverageHeartRate() async {
-    final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day);
-
-    final hrData = await _health.getHealthDataFromTypes(
-      startTime: start,
-      endTime: now,
-      types: [HealthDataType.HEART_RATE],
-    );
-
-    if (hrData.isEmpty) return 0;
-
-    final avg = hrData.map((e) => e.value as double).reduce((a, b) => a + b) / hrData.length;
-    return avg;
+  Future<double> fetchTodayDistance() async {
+    return await fetchDistanceForDate(DateTime.now());
   }
 
   Future<int> fetchTodaySleepMinutes() async {
-    final now = DateTime.now();
-    final start = now.subtract(const Duration(hours: 24));
-
-    final sleepData = await _health.getHealthDataFromTypes(
-      startTime: start,
-      endTime: now,
-      types: [
-        HealthDataType.SLEEP_ASLEEP,
-        HealthDataType.SLEEP_LIGHT,
-        HealthDataType.SLEEP_DEEP,
-      ],
-    );
-
-    return sleepData.fold<int>(0, (sum, e) {
-      final duration = e.dateTo.difference(e.dateFrom).inMinutes;
-      return sum + duration;
-    });
+    final data = await fetchSleepData();
+    return data.deep + data.light + data.wake;
   }
 
-  Health get health => _health;
+  Future<int> fetchStepsForDate(DateTime day) async {
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1)).subtract(const Duration(seconds: 1));
+    final steps = await _health.getTotalStepsInInterval(start, end);
+    return steps ?? 0;
+  }
 
-  /// SleepData модель
-  Future<SleepData> fetchSleepData() async {
-    final now = DateTime.now();
-    final start = now.subtract(const Duration(hours: 24));
-
+  Future<double> fetchDistanceForDate(DateTime day) async {
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
     final data = await _health.getHealthDataFromTypes(
       startTime: start,
-      endTime: now,
+      endTime: end,
+      types: [HealthDataType.DISTANCE_DELTA],
+    );
+    if (data.isEmpty) return 0.0;
+    return data.map((e) => e.value as double).fold(0.0, (a, b) => a + b) / 1000;
+  }
+
+  Future<int> fetchCaloriesForDate(DateTime day) async {
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+    final data = await _health.getHealthDataFromTypes(
+      startTime: start,
+      endTime: end,
+      types: [HealthDataType.ACTIVE_ENERGY_BURNED],
+    );
+    if (data.isEmpty) return 0;
+    return data.map((e) => e.value as double).fold(0.0, (a, b) => a + b).round();
+  }
+
+  Future<int> fetchTodayMoveMinutes() async {
+    return await fetchTodayMoveMinutesForDate(DateTime.now());
+  }
+
+  Future<int> fetchTodayMoveMinutesForDate(DateTime day) async {
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+    final data = await _health.getHealthDataFromTypes(
+      startTime: start,
+      endTime: end,
+      types: [HealthDataType.EXERCISE_TIME],
+    );
+    if (data.isEmpty) return 0;
+    return data.map((e) => e.value as double).fold(0.0, (a, b) => a + b).round();
+  }
+
+  Future<double> fetchAverageHeartRate() async {
+    return await fetchAverageHeartRateForDate(DateTime.now());
+  }
+
+  Future<double> fetchAverageHeartRateForDate(DateTime day) async {
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+    final hrData = await _health.getHealthDataFromTypes(
+      startTime: start,
+      endTime: end,
+      types: [HealthDataType.HEART_RATE],
+    );
+    if (hrData.isEmpty) return 0;
+    return hrData.map((e) => e.value as double).reduce((a, b) => a + b) / hrData.length;
+  }
+
+  Future<SleepData> fetchSleepData() async {
+    return await fetchSleepDataForDate(DateTime.now());
+  }
+
+  Future<SleepData> fetchSleepDataForDate(DateTime day) async {
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+    final data = await _health.getHealthDataFromTypes(
+      startTime: start,
+      endTime: end,
       types: [
         HealthDataType.SLEEP_DEEP,
         HealthDataType.SLEEP_LIGHT,
@@ -126,20 +179,4 @@ class HealthService {
       end: endStr,
     );
   }
-}
-
-class SleepData {
-  final int deep;
-  final int light;
-  final int wake;
-  final String start;
-  final String end;
-
-  SleepData({
-    required this.deep,
-    required this.light,
-    required this.wake,
-    required this.start,
-    required this.end,
-  });
 }

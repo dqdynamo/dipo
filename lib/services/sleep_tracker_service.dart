@@ -36,7 +36,26 @@ class SleepTrackerService extends ChangeNotifier {
 
   Future<void> loadSleepForDate(DateTime day) async {
     final snap = await _sleepCol().doc(_id(day)).get();
-    if (snap.exists) _apply(snap);
+    if (snap.exists) {
+      _apply(snap);
+    } else {
+      final granted = await _healthService.requestPermissions();
+      if (granted && await _healthService.requestAuthorization()) {
+        final sleepData = await _healthService.fetchSleepDataForDate(day);
+        totalMinutes = sleepData.deep + sleepData.light + sleepData.wake;
+        deepMinutes = sleepData.deep;
+        lightMinutes = sleepData.light;
+        wakeMinutes = sleepData.wake;
+        sleepStart = sleepData.start;
+        sleepEnd = sleepData.end;
+
+        await saveSleep(day); // кэшируем
+      } else {
+        totalMinutes = deepMinutes = lightMinutes = wakeMinutes = 0;
+        sleepStart = sleepEnd = '00:00';
+      }
+    }
+
     notifyListeners();
   }
 
