@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'NutritionPlanScreen.dart';
+import 'nutrition_plan_screen.dart';
 import 'dashboard_screen.dart';
 import 'nutrition_screen.dart';
 import 'progress_screen.dart';

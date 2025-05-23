@@ -1,162 +1,67 @@
+import 'package:diploma/services/device_service.dart';
+import 'package:diploma/services/health_service.dart';
+import 'package:diploma/services/profile_service.dart';
+import 'package:diploma/services/sleep_tracker_service.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:diploma/pages/Authentication/splash_screen.dart';
+import 'package:diploma/pages/Authentication/login_screen.dart';
+import 'package:diploma/pages/Main/bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
-import '../../services/NutritionPlanService.dart';
-import '../../services/goal_service.dart';
-import '../../services/profile_service.dart';
+import 'package:diploma/services/activity_tracker_service.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
-class NutritionPlanScreen extends StatefulWidget {
-  const NutritionPlanScreen({super.key});
 
-  @override
-  State<NutritionPlanScreen> createState() => _NutritionPlanScreenState();
+
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  await initializeDateFormatting('ru', null);
+
+  final healthService = HealthService();
+  await healthService.configure();
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ProfileService()),
+        ChangeNotifierProvider(create: (context) => ActivityTrackerService()),
+        ChangeNotifierProvider(create: (_) => DeviceService()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
-class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
-  NutritionPlan? _plan;
-  double? _goalWeight;
-  double? _currentWeight;
-  String _status = 'Запуск...';
-
-  final _service = NutritionPlanService();
-  final _goalService = GoalService();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadPlan());
-  }
-
-  Future<void> _loadPlan() async {
-    final profileService = context.read<ProfileService>();
-
-    try {
-      setState(() => _status = 'Загружаем профиль...');
-      await profileService.load();
-
-      setState(() => _status = 'Загружаем цели...');
-      final goals = await _goalService.loadGoals();
-
-      setState(() => _status = 'Генерируем план...');
-      final plan = await _service.generate(profileService, _goalService);
-
-      setState(() {
-        _plan = plan;
-        _goalWeight = goals.weight;
-        _currentWeight = profileService.profile?.weightKg;
-      });
-    } catch (e) {
-      setState(() => _status = 'Ошибка: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка загрузки данных: $e')),
-        );
-      }
-    }
-  }
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final grad = const [Color(0xFFFF9240), Color(0xFFDD4733)];
-
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: grad,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: _plan == null
-              ? Center(child: Text(_status, style: const TextStyle(color: Colors.white)))
-              : Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 20),
-              const Text(
-                'Nutrition Plan',
-                style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 24),
-              _infoCard(),
-              const SizedBox(height: 24),
-              _goalCard(),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Fitness Tracker',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
       ),
-    );
-  }
+      initialRoute: '/splash',
+      routes: {
+        '/splash': (context) => const SplashScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const BottomNavBarScreen(),
+      },
 
-  Widget _infoCard() {
-    final bmi = _plan!.bmi;
-    final bmiCategory = bmi < 18.5
-        ? 'Underweight'
-        : (bmi < 25 ? 'Normal' : (bmi < 30 ? 'Overweight' : 'Obese'));
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8)],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'BMI: ${bmi.toStringAsFixed(1)} ($bmiCategory)',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text('BMR: ${_plan!.bmr.round()} kcal/day'),
-            Text('TDEE: ${_plan!.tdee.round()} kcal/day'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _goalCard() {
-    final goalName = _plan!.goalType == NutritionGoalType.lose
-        ? 'Lose Weight'
-        : _plan!.goalType == NutritionGoalType.gain
-        ? 'Gain Weight'
-        : 'Maintain Weight';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8)],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Goal: $goalName',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            if (_currentWeight != null && _goalWeight != null)
-              Text(
-                'Current: ${_currentWeight!.toStringAsFixed(1)} kg → Goal: ${_goalWeight!.toStringAsFixed(1)} kg',
-              ),
-            const SizedBox(height: 8),
-            Text(
-              'Calorie Target: ${_plan!.calorieTarget} kcal/day',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en', ''), // английский
+        Locale('ru', ''), // русский
+      ],
     );
   }
 }

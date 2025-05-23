@@ -41,7 +41,10 @@ class NutritionPlan {
 class NutritionPlanService {
   final _uid = FirebaseAuth.instance.currentUser!.uid;
 
-  Future<NutritionPlan> generate(ProfileService profileService, GoalService goalService) async {
+  Future<NutritionPlan> generate(ProfileService profileService,
+  GoalService goalService, {
+        NutritionGoalType? override,
+      }) async {
     final profile = profileService.profile!;
     final goals = await goalService.loadGoals();
 
