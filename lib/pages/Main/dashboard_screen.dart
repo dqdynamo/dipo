@@ -1,14 +1,13 @@
-// lib/pages/main/dashboard_screen.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-
 import '../../services/activity_tracker_service.dart';
 import '../../services/goal_service.dart';
-import '../../services/sleep_tracker_service.dart';
 import 'goal_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -19,51 +18,11 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _tab = 0;
-  bool _showChart = false;
   DateTime _day = DateTime.now();
-  int _goalSteps = 10000;
+  int _goalSteps = 0;
+  final ScreenshotController _screenshotController = ScreenshotController();
 
   DateTime _mondayOf(DateTime d) => d.subtract(Duration(days: d.weekday - 1));
-
-  void _showAddStepsDialog(BuildContext context) {
-    final controller = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Add Steps'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Number of steps',
-          ),
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          TextButton(
-            child: const Text('Add'),
-            onPressed: () {
-              final input = int.tryParse(controller.text);
-              if (input != null && input > 0) {
-                final tracker = context.read<ActivityTrackerService>();
-                tracker.addSteps(input);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Added $input steps')),
-                );
-              }
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
 
   @override
   void initState() {
@@ -75,10 +34,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _goalSteps = goal.steps;
       });
 
-      context.read<ActivityTrackerService>().loadActivityForDate(_day);
-      context.read<SleepTrackerService>().loadSleepForDate(_day);
-      context.read<ActivityTrackerService>().loadWeek(_mondayOf(_day));
-      context.read<SleepTrackerService>().loadWeek(_mondayOf(_day));
+      final activity = context.read<ActivityTrackerService>();
+      activity.loadActivityForDate(_day);
+      activity.loadWeek(_mondayOf(_day));
+      activity.refreshFromHealth();
     });
   }
 
@@ -93,7 +52,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (picked != null) {
       setState(() => _day = picked);
       context.read<ActivityTrackerService>().loadActivityForDate(picked);
-      context.read<SleepTrackerService>().loadSleepForDate(picked);
     }
   }
 
@@ -105,223 +63,101 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAct = _tab == 0;
-    final grad =
-        isAct
-            ? const [Color(0xFFFF9240), Color(0xFFDD4733)]
-            : const [Color(0xFF35B4FF), Color(0xFF0D63C9)];
+    final grad = const [Color(0xFFFF9240), Color(0xFFDD4733)];
 
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: grad,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Screenshot(
+      controller: _screenshotController,
+      child: Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: grad,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: () async {
-              final act = context.read<ActivityTrackerService>();
-              final slp = context.read<SleepTrackerService>();
-
-              await act.refreshFromHealth();
-              await slp.refreshFromHealth();
-
-              // Save both updated records to Firestore
-              await act.saveActivity(_day);
-              await slp.saveSleep(_day);
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    "Updated: ${act.steps} steps, ${slp.totalMinutes} min sleep, ${act.avgHeartRate} bpm",
-                  ),
-                ),
-              );
-            },
-            child: Consumer2<ActivityTrackerService, SleepTrackerService>(
-              builder:
-                  (_, st, sl, __) => SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Column(
+          child: SafeArea(
+            child: Consumer<ActivityTrackerService>(
+              builder: (_, st, __) => Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                    child: Row(
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                        IconButton(
+                          icon: const Icon(Icons.flag, color: Colors.white),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const GoalScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: _pickDate,
                           child: Row(
                             children: [
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.share,
+                              Text(
+                                _label,
+                                style: const TextStyle(
                                   color: Colors.white,
-                                ),
-                                onPressed: () {
-                                  final activity =
-                                      context.read<ActivityTrackerService>();
-                                  final sleep =
-                                      context.read<SleepTrackerService>();
-
-                                  final sleepHours =
-                                      (sleep.totalMinutes / 60).floor();
-                                  final sleepMinutes = sleep.totalMinutes % 60;
-
-                                  final shareText = '''
-📊 My fitness progress today:
-
-🚶 Steps: ${activity.steps}
-🔥 Calories: ${activity.calories} kcal
-🛌 Sleep: ${sleepHours}h ${sleepMinutes}m
-❤️ Heart rate: ${activity.avgHeartRate} bpm
-
-#MyFitnessStats
-''';
-
-                                  Share.share(shareText);
-                                },
-                              ),
-
-                              IconButton(
-                                icon: const Icon(Icons.add, color: Colors.white),
-                                onPressed: () => _showAddStepsDialog(context),
-                              ),
-
-
-                              const Spacer(),
-                              GestureDetector(
-                                onTap: _pickDate,
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      _label,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 19,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const Icon(
-                                      Icons.arrow_drop_down,
-                                      color: Colors.white,
-                                    ),
-                                  ],
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const Spacer(),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.flag,
-                                  color: Colors.white,
-                                ),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const GoalScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
+                              const Icon(Icons.arrow_drop_down, color: Colors.white),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        GestureDetector(
-                          onTap: () {
-                            if (isAct) setState(() => _showChart = !_showChart);
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.share, color: Colors.white),
+                          onPressed: () async {
+                            try {
+                              final image = await _screenshotController.capture();
+                              if (image == null) return;
+
+                              final directory = await getTemporaryDirectory();
+                              final imagePath = await File('${directory.path}/activity_share.png').create();
+                              await imagePath.writeAsBytes(image);
+
+                              await Share.shareXFiles(
+                                [XFile(imagePath.path)],
+                                text: '📊 My Activity Stats',
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error capturing screenshot: $e')),
+                              );
+                            }
                           },
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 350),
-                            child: isAct
-                                ? _ActivityRingChart(
-                              key: ValueKey(_showChart),
-                              showChart: _showChart,
-                              st: st,
-                              goalSteps: _goalSteps,
-                              onBackFromChart: () => setState(() => _showChart = false),
-                            )
-                                : _SleepRing(
-                              key: const ValueKey('sleep'),
-                              sl: sl,
-                            ),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            _Tab('Activity', isAct, () {
-                              setState(() {
-                                _tab = 0;
-                                _showChart = false;
-                              });
-                            }),
-                            _Tab('Sleep', !isAct, () {
-                              setState(() {
-                                _tab = 1;
-                                _showChart = false;
-                              });
-                            }),
-                          ],
-                        ),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 22,
-                          ),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(26),
-                            ),
-                          ),
-                          child:
-                              isAct
-                                  ? Column(
-                                    children: [
-                                      Row(
-                                        children: [
-                                          _Card(
-                                            Icons.local_fire_department,
-                                            'Calories',
-                                            st.calories.toString(),
-                                            'kcal',
-                                            Colors.deepOrange,
-                                          ),
-                                          _Card(
-                                            Icons.place,
-                                            'Distance',
-                                            st.distance.toStringAsFixed(2),
-                                            'km',
-                                            Colors.blueAccent,
-                                          ),
-                                          _Card(
-                                            Icons.timer,
-                                            'Duration',
-                                            st.activeMinutes.toString(),
-                                            'min',
-                                            Colors.amber,
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 18),
-                                      Row(
-                                        children: [
-                                          _Card(
-                                            Icons.favorite,
-                                            'Heart Rate',
-                                            st.avgHeartRate.toString(),
-                                            'bpm',
-                                            Colors.redAccent,
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  )
-                                  : _SleepStats(sl: sl),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(height: 40),
+                  _ActivityChart(st: st, goalSteps: _goalSteps),
+                  const SizedBox(height: 20),
+                  _SyncButton(onSync: () async {
+                    await context.read<ActivityTrackerService>().refreshFromHealth();
+                    context.read<ActivityTrackerService>().loadActivityForDate(_day);
+                    context.read<ActivityTrackerService>().loadWeek(_mondayOf(_day));
+                  }),
+                  const Spacer(),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+                    ),
+                    child: _ActivityStats(st: st),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -330,39 +166,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-class _Tab extends StatelessWidget {
-  final String text;
-  final bool sel;
-  final VoidCallback tap;
+class _ActivityChart extends StatelessWidget {
+  final ActivityTrackerService st;
+  final int goalSteps;
 
-  const _Tab(this.text, this.sel, this.tap);
+  const _ActivityChart({required this.st, required this.goalSteps});
 
   @override
-  Widget build(BuildContext c) => Expanded(
-    child: GestureDetector(
-      onTap: tap,
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration:
-            sel
-                ? const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Colors.white, width: 3),
-                  ),
-                )
-                : null,
-        child: Text(
-          text,
-          style: TextStyle(
-            color: sel ? Colors.white : Colors.white60,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
+  Widget build(BuildContext ctx) {
+    final pct = goalSteps > 0 ? (st.steps / goalSteps).clamp(0.0, 1.0) : 0.0;
+    return SizedBox(
+      height: 320,
+      child: CircularPercentIndicator(
+        radius: 150,
+        lineWidth: 20,
+        percent: pct,
+        backgroundColor: Colors.white24,
+        progressColor: Colors.white,
+        circularStrokeCap: CircularStrokeCap.round,
+        center: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.directions_walk, color: Colors.white, size: 42),
+            const SizedBox(height: 8),
+            Text(
+              '${st.steps}',
+              style: const TextStyle(fontSize: 56, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+              margin: const EdgeInsets.only(top: 4),
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Text('steps', style: TextStyle(color: Colors.white, fontSize: 14)),
+            ),
+            Text(
+              'Goal: $goalSteps',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            Text(
+              'Completed: ${(100 * pct).round()}%',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+          ],
         ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _ActivityStats extends StatelessWidget {
+  final ActivityTrackerService st;
+
+  const _ActivityStats({required this.st});
+
+  @override
+  Widget build(BuildContext context) {
+    final cal = (st.steps * 0.04).toInt();
+    final dist = st.steps * 0.0008;
+    final mins = (st.steps / 100).round();
+
+    return Row(
+      children: [
+        _Card(Icons.local_fire_department, 'Calories', '$cal', 'kcal', Colors.deepOrange),
+        _Card(Icons.place, 'Distance', dist.toStringAsFixed(2), 'km', Colors.blueAccent),
+        _Card(Icons.timer, 'Duration', '$mins', 'min', Colors.amber),
+      ],
+    );
+  }
 }
 
 class _Card extends StatelessWidget {
@@ -373,213 +246,40 @@ class _Card extends StatelessWidget {
   const _Card(this.ic, this.label, this.val, this.unit, this.col);
 
   @override
-  Widget build(BuildContext ctx) => Expanded(
-    child: Container(
-      margin: const EdgeInsets.symmetric(horizontal: 5),
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: col.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Icon(ic, color: col, size: 30),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 14, color: Colors.black54),
-          ),
-          RichText(
-            text: TextSpan(
-              text: val,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-              children: [
-                TextSpan(
-                  text: unit,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class _SleepStats extends StatelessWidget {
-  final SleepTrackerService sl;
-
-  const _SleepStats({super.key, required this.sl});
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      _Card(
-        Icons.bedtime,
-        'Deep',
-        _f(sl.deepMinutes),
-        '',
-        const Color(0xFF536DFE),
-      ),
-      _Card(
-        Icons.hotel,
-        'Light',
-        _f(sl.lightMinutes),
-        '',
-        const Color(0xFF18FFFF),
-      ),
-      _Card(
-        Icons.wb_sunny,
-        'Awake',
-        _f(sl.wakeMinutes),
-        '',
-        const Color(0xFFFFB300),
-      ),
-    ],
-  );
-
-  String _f(int m) =>
-      '${(m / 60).floor()}h${(m % 60).toString().padLeft(2, '0')}m';
-}
-
-class _SleepRing extends StatelessWidget {
-  final SleepTrackerService sl;
-
-  const _SleepRing({super.key, required this.sl});
-
-  @override
   Widget build(BuildContext ctx) {
-    final h = (sl.totalMinutes / 60).floor();
-    final m = sl.totalMinutes % 60;
-    return SizedBox(
-      height: 270,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 235,
-            height: 235,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white60, width: 2),
-            ),
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.nightlight_round, color: Colors.white, size: 38),
-              const SizedBox(height: 6),
-              Text(
-                '${h}h${m.toString().padLeft(2, '0')}m',
-                style: const TextStyle(
-                  fontSize: 38,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Start: ${sl.sleepStart}',
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-              Text(
-                'End:   ${sl.sleepEnd}',
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActivityRingChart extends StatelessWidget {
-  final bool showChart;
-  final ActivityTrackerService st;
-  final int goalSteps;
-  final VoidCallback? onBackFromChart; // Добавляем колбэк
-
-  const _ActivityRingChart({
-    super.key,
-    required this.showChart,
-    required this.st,
-    required this.goalSteps,
-    this.onBackFromChart,
-  });
-
-  @override
-  Widget build(BuildContext ctx) {
-    if (showChart) {
-      return SizedBox(
-        height: 230,
-        child: Stack(
-          children: [
-            _HourlyStepsChart(stepsByHour: st.stepsByHour),
-            // Кнопка "назад" — в правом верхнем углу графика
-            Positioned(
-              top: 12,
-              right: 12,
-    child: Opacity(
-    opacity: 0.5, // Прозрачность кнопки
-    child: InkWell(
-    splashColor: Colors.white24,
-    onTap: onBackFromChart ?? () {
-    // По-умолчанию ничего
-    },
-      child: const SizedBox(
-        width: 36,
-        height: 36,
-        child: Icon(Icons.close, color: Colors.white, size: 20),
-      ),
-    ),
-    ),
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: col.withOpacity(0.15),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
-      );
-    }
-    final pct = (st.steps / goalSteps).clamp(0.0, 1.0);
-    return SizedBox(
-      height: 260,
-      child: CircularPercentIndicator(
-        radius: 120,
-        lineWidth: 18,
-        percent: pct,
-        backgroundColor: Colors.white24,
-        progressColor: Colors.white,
-        circularStrokeCap: CircularStrokeCap.round,
-        center: Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.directions_walk, color: Colors.white, size: 36),
-            const SizedBox(height: 8),
-            Text(
-              '${st.steps}',
-              style: const TextStyle(fontSize: 50, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-              margin: const EdgeInsets.only(top: 4, bottom: 4),
-              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(14)),
-              child: const Text('steps', style: TextStyle(color: Colors.white, fontSize: 14)),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: col.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(ic, color: col, size: 24),
             ),
+            const SizedBox(height: 10),
             Text(
-              'Goal: $goalSteps',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+              '$val $unit',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: col),
             ),
-            Text(
-              'Completed: ${(100 * (st.steps / goalSteps).clamp(0, 1)).round()}%',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(fontSize: 13, color: Colors.black54)),
           ],
         ),
       ),
@@ -587,88 +287,48 @@ class _ActivityRingChart extends StatelessWidget {
   }
 }
 
-class _HourlyStepsChart extends StatelessWidget {
-  final List<int> stepsByHour;
-  const _HourlyStepsChart({required this.stepsByHour});
+class _SyncButton extends StatefulWidget {
+  final Future<void> Function() onSync;
+
+  const _SyncButton({required this.onSync});
+
+  @override
+  State<_SyncButton> createState() => _SyncButtonState();
+}
+
+class _SyncButtonState extends State<_SyncButton> {
+  bool _loading = false;
+
+  Future<void> _sync() async {
+    setState(() => _loading = true);
+    try {
+      await widget.onSync();
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final max = stepsByHour.reduce((a, b) => a > b ? a : b);
-    final maxY = ((max + 199) ~/ 200) * 200 + 200;
-
-    return AspectRatio(
-      aspectRatio: 1.4,
-      child: LineChart(
-        LineChartData(
-          minY: 0,
-          maxY: maxY.toDouble(),
-          gridData: FlGridData(
-            show: true,
-            horizontalInterval: maxY / 3,
-            drawVerticalLine: false,
-            getDrawingHorizontalLine: (v) =>
-                FlLine(color: Colors.white24, strokeWidth: 1),
-          ),
-          titlesData: FlTitlesData(
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                reservedSize: 38,
-                interval: maxY / 3,
-                showTitles: true,
-                getTitlesWidget: (v, _) => Text(
-                  v.toInt().toString(),
-                  style: const TextStyle(color: Colors.white60, fontSize: 12),
-                ),
-              ),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 20,
-                interval: 1,
-                getTitlesWidget: (value, meta) {
-                  final v = value.toInt();
-                  if (v % 4 != 0 && v != 23) {
-                    return const SizedBox.shrink();
-                  }
-                  return Text(
-                    '$v',
-                    style: const TextStyle(color: Colors.white60, fontSize: 12),
-                  );
-                },
-              ),
-            ),
-            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          borderData: FlBorderData(show: false),
-          lineBarsData: [
-            LineChartBarData(
-              spots: List.generate(
-                stepsByHour.length,
-                    (i) => FlSpot(i.toDouble(), stepsByHour[i].toDouble()),
-              ),
-              isCurved: false,
-              barWidth: 2,
-              color: Colors.white,
-              dotData: FlDotData(
-                show: true,
-                checkToShowDot: (spot, barData) => true,
-                getDotPainter: (spot, percent, barData, index) =>
-                    FlDotCirclePainter(
-                      radius: 3,
-                      color: Colors.white,
-                      strokeColor: Colors.white,
-                      strokeWidth: 0,
-                    ),
-              ),
-            ),
-          ],
-        ),
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        foregroundColor: Colors.white,
+        backgroundColor: Colors.white24,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      ),
+      onPressed: _loading ? null : _sync,
+      icon: _loading
+          ? const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+      )
+          : const Icon(Icons.sync),
+      label: Text(
+        _loading ? 'Syncing...' : 'Sync Steps',
+        style: const TextStyle(fontWeight: FontWeight.bold),
       ),
     );
   }
 }
-
-
-

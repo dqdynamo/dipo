@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'NutritionPlanScreen.dart';
 import 'dashboard_screen.dart';
-import 'device_screen.dart';
+import 'nutrition_screen.dart';
 import 'progress_screen.dart';
 import 'more_screen.dart';
 
@@ -17,7 +18,7 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
   final List<Widget> _pages = [
     const DashboardScreen(),
     const ProgressScreen(),
-    const DeviceScreen(),
+    const NutritionPlanScreen(),
     const MoreScreen(),
   ];
 
@@ -43,8 +44,8 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
             label: 'Progress',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.watch),
-            label: 'Device',
+            icon: Icon(Icons.restaurant_menu),
+            label: 'Nutrition',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.more_horiz),

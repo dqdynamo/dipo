@@ -1,4 +1,3 @@
-// lib/services/profile_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -8,12 +7,14 @@ class UserProfile {
   DateTime? birthday;
   double heightCm;
   double weightKg;
+  String gender; // NEW FIELD
 
   UserProfile({
     required this.displayName,
     this.birthday,
     required this.heightCm,
     required this.weightKg,
+    this.gender = 'Male',
   });
 
   Map<String, dynamic> toMap() => {
@@ -21,14 +22,15 @@ class UserProfile {
     'birthday': birthday?.toIso8601String(),
     'heightCm': heightCm,
     'weightKg': weightKg,
+    'gender': gender,
   };
 
   factory UserProfile.fromMap(Map<String, dynamic> m) => UserProfile(
     displayName: m['displayName'] ?? '',
-    birthday:
-    m['birthday'] != null ? DateTime.parse(m['birthday']) : null,
+    birthday: m['birthday'] != null ? DateTime.parse(m['birthday']) : null,
     heightCm: (m['heightCm'] ?? 0).toDouble(),
     weightKg: (m['weightKg'] ?? 0).toDouble(),
+    gender: m['gender'] ?? 'Male',
   );
 }
 

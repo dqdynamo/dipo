@@ -11,7 +11,6 @@ class ActivityTrackerService extends ChangeNotifier {
   int _avgHeartRate = 0;
   int _calories = 0;
   DateTime _currentDay = DateTime.now();
-  List<int> _hourly = List<int>.filled(24, 0);
 
   final List<int> _weekSteps = List<int>.filled(7, 0);
   final List<int> _monthSteps = List<int>.filled(31, 0);
@@ -22,7 +21,6 @@ class ActivityTrackerService extends ChangeNotifier {
   int get activeMinutes => _activeMinutes;
   int get avgHeartRate => _avgHeartRate;
   int get calories => _calories;
-  List<int> get stepsByHour => List.unmodifiable(_hourly);
   DateTime get currentDay => _currentDay;
   List<int> weeklySteps(DateTime _) => List.unmodifiable(_weekSteps);
   List<int> monthlySteps(DateTime _) => List.unmodifiable(_monthSteps);
@@ -41,37 +39,26 @@ class ActivityTrackerService extends ChangeNotifier {
   String _dateId(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
 
   Future<void> loadActivityForDate(DateTime day) async {
+    _currentDay = day;
     final doc = await _activityCol().doc(_dateId(day)).get();
     if (doc.exists) {
       final m = doc.data()!;
       _steps = m['steps'] ?? 0;
-      _hourly = (m['hourly'] as List<dynamic>? ?? List.filled(24, 0)).cast<int>();
-      _steps  = _hourly.fold<int>(0, (s, e) => s + e);
       _distance = (m['distance'] ?? 0).toDouble();
       _activeMinutes = m['activeMinutes'] ?? 0;
-      _avgHeartRate = m['heartRate'] ?? 0;
       _calories = m['calories'] ?? 0;
+      _avgHeartRate = m['heartRate'] ?? 0;
     } else {
-      final permissionsGranted = await _healthService.requestPermissions();
-      if (permissionsGranted && await _healthService.requestAuthorization()) {
-        _steps = await _healthService.fetchStepsForDate(day);
-        _distance = await _healthService.fetchDistanceForDate(day);
-        _calories = await _healthService.fetchCaloriesForDate(day);
-        _activeMinutes = await _healthService.fetchTodayMoveMinutesForDate(day);
-        _avgHeartRate = (await _healthService.fetchAverageHeartRateForDate(day)).toInt();
-        _hourly       = await _healthService.fetchHourlyStepsForDate(day);
-        _steps        = _hourly.fold<int>(0, (s, e) => s + e);
-        await saveActivity(day);
-      } else {
-        _steps = 0;
-        _distance = 0.0;
-        _activeMinutes = 0;
-        _hourly = List<int>.filled(24, 0);
-        _avgHeartRate = 0;
-        _calories = 0;
-      }
+      _steps = 0;
+      _distance = 0.0;
+      _activeMinutes = 0;
+      _calories = 0;
+      _avgHeartRate = 0;
     }
-    _currentDay = day;
+
+    await refreshFromHealth();
+    await saveActivity(day);
+
     notifyListeners();
   }
 
@@ -81,7 +68,6 @@ class ActivityTrackerService extends ChangeNotifier {
       'distance': _distance,
       'activeMinutes': _activeMinutes,
       'calories': _calories,
-      'hourly': _hourly,
       'heartRate': _avgHeartRate,
       'date': _dateId(day),
     });
@@ -132,31 +118,24 @@ class ActivityTrackerService extends ChangeNotifier {
   }
 
   Future<void> refreshFromHealth() async {
-    print("🔄 refreshFromHealth called");
-    final permissionsGranted = await _healthService.requestPermissions();
-    if (permissionsGranted && await _healthService.requestAuthorization()) {
-      _steps = await _healthService.fetchTodaySteps();
-      _distance = await _healthService.fetchTodayDistance();
-      _calories = await _healthService.fetchTodayCalories();
-      _activeMinutes = await _healthService.fetchTodayMoveMinutes();
-      _avgHeartRate = (await _healthService.fetchAverageHeartRate()).toInt();
-      _hourly        = await _healthService.fetchHourlyStepsForDate(DateTime.now());
-      _steps        = _hourly.fold<int>(0, (s, e) => s + e);
-
-      print("📤 Saving activity for ${DateTime.now()} — steps: $_steps, distance: $_distance, calories: $_calories");
-      await saveActivity(_currentDay);
-      notifyListeners();
-    } else {
-      debugPrint('Health permissions not granted');
+    final granted = await _healthService.requestPermissions();
+    if (!granted) {
+      print('Permissions not granted');
+      return;
     }
-  }
 
-  /// Adds steps to both the daily total and the current hour.
-  void addSteps(int delta) {
-    final h = DateTime.now().hour;
-    _steps  += delta;
-    _hourly[h] += delta;
-    notifyListeners();
-    saveActivity(_currentDay);
+    final authorized = await _healthService.requestAuthorization();
+    if (!authorized) {
+      print('Authorization not granted');
+      return;
+    }
+
+    final steps = await _healthService.fetchTodaySteps();
+    if (steps > 0) {
+      setSteps(steps);
+      await saveActivity(_currentDay);
+    } else {
+      print('No steps retrieved from Google Fit');
+    }
   }
 }

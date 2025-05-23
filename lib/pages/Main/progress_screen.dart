@@ -1,11 +1,9 @@
-// lib/screens/progress_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 import '../../services/activity_tracker_service.dart';
-import '../../services/sleep_tracker_service.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({Key? key}) : super(key: key);
@@ -15,7 +13,6 @@ class ProgressScreen extends StatefulWidget {
 }
 
 class _ProgressScreenState extends State<ProgressScreen> {
-  int _tab = 0; // 0 = Activity, 1 = Sleep
   int _period = 0; // 0 = Week, 1 = Month, 2 = Year
   late DateTime _selectedDate;
 
@@ -30,22 +27,18 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
   void _loadData() {
     final activityService = context.read<ActivityTrackerService>();
-    final sleepService = context.read<SleepTrackerService>();
     switch (_period) {
       case 0:
         final monday = _getMonday(_selectedDate);
         activityService.loadWeek(monday);
-        sleepService.loadWeek(monday);
         break;
       case 1:
         final monthStart = DateTime(_selectedDate.year, _selectedDate.month);
         activityService.loadMonth(monthStart);
-        sleepService.loadMonth(monthStart);
         break;
       case 2:
         final year = _selectedDate.year;
         activityService.loadYear(year);
-        sleepService.loadYear(year);
         break;
     }
   }
@@ -84,11 +77,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAct = _tab == 0;
-    final grad =
-        isAct
-            ? const [Color(0xFFFF9240), Color(0xFFDD4733)]
-            : const [Color(0xFF35B4FF), Color(0xFF0D63C9)];
+    final grad = const [Color(0xFFFF9240), Color(0xFFDD4733)];
 
     return Scaffold(
       body: Container(
@@ -100,31 +89,24 @@ class _ProgressScreenState extends State<ProgressScreen> {
           ),
         ),
         child: SafeArea(
-          child: Consumer2<ActivityTrackerService, SleepTrackerService>(
-            builder: (_, st, sl, __) {
+          child: Consumer<ActivityTrackerService>(
+            builder: (_, st, __) {
               List<int> data;
               switch (_period) {
                 case 0:
                   final monday = _getMonday(_selectedDate);
-                  data =
-                      isAct ? st.weeklySteps(monday) : sl.weeklySleep(monday);
+                  data = st.weeklySteps(monday);
                   break;
                 case 1:
                   final monthStart = DateTime(
                     _selectedDate.year,
                     _selectedDate.month,
                   );
-                  data =
-                      isAct
-                          ? st.monthlySteps(monthStart)
-                          : sl.monthlySleep(monthStart);
+                  data = st.monthlySteps(monthStart);
                   break;
                 case 2:
                   final year = _selectedDate.year;
-                  data =
-                      isAct
-                          ? st.yearlySteps(year)
-                          : sl.yearlySleep(DateTime(year));
+                  data = st.yearlySteps(year);
                   break;
                 default:
                   data = [];
@@ -178,20 +160,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: _Chart(
                         data: data,
-                        isActivity: isAct,
+                        isActivity: true,
                         period: _period,
                       ),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      _Tab('Activity', isAct, () {
-                        setState(() => _tab = 0);
-                      }),
-                      _Tab('Sleep', !isAct, () {
-                        setState(() => _tab = 1);
-                      }),
-                    ],
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -223,10 +195,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                           top: Radius.circular(26),
                         ),
                       ),
-                      child:
-                          isAct
-                              ? _ActivityStats(data: data, period: _period)
-                              : _SleepStats(data: data, period: _period),
+                      child: _ActivityStats(data: data, period: _period),
                     ),
                   ),
                 ],
@@ -237,87 +206,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
       ),
     );
   }
-
-  List<Widget> _buildLabels() {
-    switch (_period) {
-      case 0:
-        return const [
-          _Day('Mon'),
-          _Day('Tue'),
-          _Day('Wed'),
-          _Day('Thu'),
-          _Day('Fri'),
-          _Day('Sat'),
-          _Day('Sun'),
-        ];
-      case 1:
-        final daysInMonth =
-            DateTime(_selectedDate.year, _selectedDate.month + 1, 0).day;
-        return List.generate(daysInMonth, (i) => _Day('${i + 1}'));
-      case 2:
-        return const [
-          _Day('Jan'),
-          _Day('Feb'),
-          _Day('Mar'),
-          _Day('Apr'),
-          _Day('May'),
-          _Day('Jun'),
-          _Day('Jul'),
-          _Day('Aug'),
-          _Day('Sep'),
-          _Day('Oct'),
-          _Day('Nov'),
-          _Day('Dec'),
-        ];
-      default:
-        return [];
-    }
-  }
-}
-
-class _Day extends StatelessWidget {
-  final String t;
-
-  const _Day(this.t);
-
-  @override
-  Widget build(BuildContext c) =>
-      Text(t, style: const TextStyle(color: Colors.white70, fontSize: 12));
-}
-
-class _Tab extends StatelessWidget {
-  final String t;
-  final bool sel;
-  final VoidCallback tap;
-
-  const _Tab(this.t, this.sel, this.tap);
-
-  @override
-  Widget build(BuildContext c) => Expanded(
-    child: GestureDetector(
-      onTap: tap,
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration:
-            sel
-                ? const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Colors.white, width: 3),
-                  ),
-                )
-                : null,
-        child: Text(
-          t,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    ),
-  );
 }
 
 class _PeriodButton extends StatelessWidget {
@@ -377,9 +265,9 @@ class _Chart extends StatelessWidget {
               showTitles: true,
               getTitlesWidget:
                   (v, _) => Text(
-                    v.toInt().toString(),
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
-                  ),
+                v.toInt().toString(),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
             ),
           ),
           rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -394,52 +282,23 @@ class _Chart extends StatelessWidget {
 
                 switch (period) {
                   case 0:
-                    const weekDays = [
-                      'Mon',
-                      'Tue',
-                      'Wed',
-                      'Thu',
-                      'Fri',
-                      'Sat',
-                      'Sun',
-                    ];
-                    if (index >= 0 && index < weekDays.length) {
-                      text = weekDays[index];
-                    }
+                    const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                    if (index >= 0 && index < weekDays.length) text = weekDays[index];
                     break;
                   case 1:
                     const shownDays = [0, 6, 12, 18, 24, 30];
-                    if (shownDays.contains(index)) {
-                      text = '${index + 1}';
-                    }
+                    if (shownDays.contains(index)) text = '${index + 1}';
                     break;
                   case 2:
-                    const months = [
-                      'Jan',
-                      'Feb',
-                      'Mar',
-                      'Apr',
-                      'May',
-                      'Jun',
-                      'Jul',
-                      'Aug',
-                      'Sep',
-                      'Oct',
-                      'Nov',
-                      'Dec',
-                    ];
-                    if (index >= 0 && index < months.length) {
-                      text = months[index];
-                    }
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    if (index >= 0 && index < months.length) text = months[index];
                     break;
                 }
 
                 return Padding(
                   padding: const EdgeInsets.only(top: 10),
-                  child: Text(
-                    text,
-                    style: const TextStyle(color: Colors.white70, fontSize: 11),
-                  ),
+                  child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 11)),
                 );
               },
             ),
@@ -448,10 +307,7 @@ class _Chart extends StatelessWidget {
         borderData: FlBorderData(show: false),
         lineBarsData: [
           LineChartBarData(
-            spots: List.generate(
-              data.length,
-              (i) => FlSpot(i.toDouble(), data[i].toDouble()),
-            ),
+            spots: List.generate(data.length, (i) => FlSpot(i.toDouble(), data[i].toDouble())),
             isCurved: false,
             barWidth: 2,
             color: Colors.white,
@@ -459,59 +315,17 @@ class _Chart extends StatelessWidget {
               show: true,
               getDotPainter:
                   (spot, percent, barData, index) => FlDotCirclePainter(
-                    radius: 3,
-                    color: Colors.white,
-                    strokeColor: Colors.white,
-                    strokeWidth: 0,
-                  ),
+                radius: 3,
+                color: Colors.white,
+                strokeColor: Colors.white,
+                strokeWidth: 0,
+              ),
             ),
           ),
         ],
       ),
     );
   }
-}
-
-class _Item extends StatelessWidget {
-  final String label;
-  final String value;
-  final String unit;
-
-  const _Item(this.label, this.value, this.unit);
-
-  @override
-  Widget build(BuildContext ctx) => Expanded(
-    child: Column(
-      children: [
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 13, color: Colors.black54),
-        ),
-        const SizedBox(height: 4),
-        RichText(
-          textAlign: TextAlign.center,
-          text: TextSpan(
-            text: value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-            children: [
-              TextSpan(
-                text: unit,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.normal,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 class _ActivityStats extends StatelessWidget {
@@ -553,41 +367,33 @@ class _ActivityStats extends StatelessWidget {
   }
 }
 
-class _SleepStats extends StatelessWidget {
-  final List<int> data;
-  final int period;
+class _Item extends StatelessWidget {
+  final String label;
+  final String value;
+  final String unit;
 
-  const _SleepStats({required this.data, required this.period});
+  const _Item(this.label, this.value, this.unit);
 
   @override
-  Widget build(BuildContext context) {
-    final totalMin = data.fold<int>(0, (s, e) => s + e);
-    final h = (totalMin / 60).floor();
-    final m = totalMin % 60;
-
-    final count = data.where((e) => e > 0).length;
-    final avg = count > 0 ? (totalMin / count).round() : 0;
-    final ah = (avg / 60).floor();
-    final am = avg % 60;
-
-    return Column(
+  Widget build(BuildContext ctx) => Expanded(
+    child: Column(
       children: [
-        Row(
-          children: [
-            _Item('Total sleep', '${h}h${m}m', ''),
-            _Item('Avg sleep/day', '${ah}h${am}m', ''),
-            const _Item('Wake-up', '00:00', ''),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: const [
-            _Item('Time in bed', '00:00', ''),
-            _Item('Deep sleep', '0h0m', ''),
-            _Item('Awake periods', '0', ''),
-          ],
+        Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+        const SizedBox(height: 4),
+        RichText(
+          textAlign: TextAlign.center,
+          text: TextSpan(
+            text: value,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+            children: [
+              TextSpan(
+                text: unit,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.normal),
+              ),
+            ],
+          ),
         ),
       ],
-    );
-  }
+    ),
+  );
 }

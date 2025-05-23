@@ -15,7 +15,6 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
   NutritionPlan? _plan;
   double? _goalWeight;
   double? _currentWeight;
-  String _status = 'Запуск...';
 
   final _service = NutritionPlanService();
   final _goalService = GoalService();
@@ -30,13 +29,8 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
     final profileService = context.read<ProfileService>();
 
     try {
-      setState(() => _status = 'Загружаем профиль...');
       await profileService.load();
-
-      setState(() => _status = 'Загружаем цели...');
       final goals = await _goalService.loadGoals();
-
-      setState(() => _status = 'Генерируем план...');
       final plan = await _service.generate(profileService, _goalService);
 
       setState(() {
@@ -45,7 +39,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
         _currentWeight = profileService.profile?.weightKg;
       });
     } catch (e) {
-      setState(() => _status = 'Ошибка: $e');
+      print('ERROR: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ошибка загрузки данных: $e')),
@@ -69,14 +63,18 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
         ),
         child: SafeArea(
           child: _plan == null
-              ? Center(child: Text(_status, style: const TextStyle(color: Colors.white)))
+              ? const Center(child: CircularProgressIndicator())
               : Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 20),
               const Text(
                 'Nutrition Plan',
-                style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 22,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 24),
               _infoCard(),
@@ -103,7 +101,9 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8)],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,7 +135,9 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8)],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
