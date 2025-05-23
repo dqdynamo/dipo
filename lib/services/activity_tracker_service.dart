@@ -144,7 +144,7 @@ class ActivityTrackerService extends ChangeNotifier {
       _steps        = _hourly.fold<int>(0, (s, e) => s + e);
 
       print("📤 Saving activity for ${DateTime.now()} — steps: $_steps, distance: $_distance, calories: $_calories");
-      await saveActivity(DateTime.now());
+      await saveActivity(_currentDay);
       notifyListeners();
     } else {
       debugPrint('Health permissions not granted');
@@ -157,5 +157,6 @@ class ActivityTrackerService extends ChangeNotifier {
     _steps  += delta;
     _hourly[h] += delta;
     notifyListeners();
+    saveActivity(_currentDay);
   }
 }

@@ -232,18 +232,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           },
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 350),
-                            child:
-                                isAct
-                                    ? _ActivityRingChart(
-                                      key: ValueKey(_showChart),
-                                      showChart: _showChart,
-                                      st: st,
-                                      goalSteps: _goalSteps,
-                                    )
-                                    : _SleepRing(
-                                      key: const ValueKey('sleep'),
-                                      sl: sl,
-                                    ),
+                            child: isAct
+                                ? _ActivityRingChart(
+                              key: ValueKey(_showChart),
+                              showChart: _showChart,
+                              st: st,
+                              goalSteps: _goalSteps,
+                              onBackFromChart: () => setState(() => _showChart = false),
+                            )
+                                : _SleepRing(
+                              key: const ValueKey('sleep'),
+                              sl: sl,
+                            ),
                           ),
                         ),
                         Row(
@@ -506,17 +506,47 @@ class _ActivityRingChart extends StatelessWidget {
   final bool showChart;
   final ActivityTrackerService st;
   final int goalSteps;
+  final VoidCallback? onBackFromChart; // Добавляем колбэк
 
   const _ActivityRingChart({
     super.key,
     required this.showChart,
     required this.st,
     required this.goalSteps,
+    this.onBackFromChart,
   });
 
   @override
   Widget build(BuildContext ctx) {
-    if (showChart) return _HourlyStepsChart(stepsByHour: st.stepsByHour);
+    if (showChart) {
+      return SizedBox(
+        height: 230,
+        child: Stack(
+          children: [
+            _HourlyStepsChart(stepsByHour: st.stepsByHour),
+            // Кнопка "назад" — в правом верхнем углу графика
+            Positioned(
+              top: 12,
+              right: 12,
+    child: Opacity(
+    opacity: 0.5, // Прозрачность кнопки
+    child: InkWell(
+    splashColor: Colors.white24,
+    onTap: onBackFromChart ?? () {
+    // По-умолчанию ничего
+    },
+      child: const SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(Icons.close, color: Colors.white, size: 20),
+      ),
+    ),
+    ),
+            ),
+          ],
+        ),
+      );
+    }
     final pct = (st.steps / goalSteps).clamp(0.0, 1.0);
     return SizedBox(
       height: 260,
@@ -566,8 +596,8 @@ class _HourlyStepsChart extends StatelessWidget {
     final max = stepsByHour.reduce((a, b) => a > b ? a : b);
     final maxY = ((max + 199) ~/ 200) * 200 + 200;
 
-    return SizedBox(
-      height: 210,
+    return AspectRatio(
+      aspectRatio: 1.4,
       child: LineChart(
         LineChartData(
           minY: 0,
@@ -639,5 +669,6 @@ class _HourlyStepsChart extends StatelessWidget {
     );
   }
 }
+
 
 
