@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'profile_service.dart';
-import 'goal_service.dart';
 
 enum NutritionGoalType { maintain, lose, gain }
 
@@ -12,6 +11,11 @@ class NutritionPlan {
   final double tdee;
   final NutritionGoalType goalType;
   final int calorieTarget;
+
+  // Геттеры считают от калорийности:
+  double get proteinTarget => calorieTarget * 0.25 / 4;
+  double get fatTarget => calorieTarget * 0.3 / 9;
+  double get carbsTarget => calorieTarget * 0.45 / 4;
 
   NutritionPlan({
     required this.bmi,
@@ -27,6 +31,10 @@ class NutritionPlan {
     'tdee': tdee,
     'goalType': goalType.name,
     'calorieTarget': calorieTarget,
+    // Просто сохраняем вычисленные значения
+    'proteinTarget': proteinTarget,
+    'fatTarget': fatTarget,
+    'carbsTarget': carbsTarget,
   };
 
   factory NutritionPlan.fromMap(Map<String, dynamic> m) => NutritionPlan(
@@ -41,33 +49,29 @@ class NutritionPlan {
 class NutritionPlanService {
   final _uid = FirebaseAuth.instance.currentUser!.uid;
 
-  Future<NutritionPlan> generate(ProfileService profileService,
-  GoalService goalService, {
-        NutritionGoalType? override,
-      }) async {
+  Future<NutritionPlan> generate(ProfileService profileService, dynamic _, {NutritionGoalType? override}) async {
     final profile = profileService.profile!;
-    final goals = await goalService.loadGoals();
-
     final height = profile.heightCm;
     final currentWeight = profile.weightKg;
-    final goalWeight = goals.weight;
     final age = _calculateAge(profile.birthday);
     final gender = profile.gender;
 
+    // BMI calculation
     final bmi = currentWeight / pow(height / 100, 2);
 
+    // BMR calculation
     final bmr = gender == 'Male'
         ? 10 * currentWeight + 6.25 * height - 5 * age + 5
         : 10 * currentWeight + 6.25 * height - 5 * age - 161;
 
     final tdee = bmr * 1.4;
 
-    final delta = goalWeight - currentWeight;
-    final goalType = delta > 1
+    // BMI-based logic
+    final inferredGoalType = bmi < 18.5
         ? NutritionGoalType.gain
-        : delta < -1
-        ? NutritionGoalType.lose
-        : NutritionGoalType.maintain;
+        : (bmi < 25 ? NutritionGoalType.maintain : NutritionGoalType.lose);
+
+    final goalType = override ?? inferredGoalType;
 
     final calorieTarget = (goalType == NutritionGoalType.gain
         ? tdee * 1.2
@@ -76,6 +80,7 @@ class NutritionPlanService {
         : tdee)
         .round();
 
+    // НЕ передаём макроцели в конструктор!
     final plan = NutritionPlan(
       bmi: bmi,
       bmr: bmr,

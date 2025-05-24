@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-
 import '../../models/goal_model.dart';
 import '../../services/goal_service.dart';
-
-
 
 class GoalScreen extends StatefulWidget {
   const GoalScreen({super.key});
@@ -27,13 +24,20 @@ class _GoalScreenState extends State<GoalScreen> {
   }
 
   Future<void> _load() async {
-    final goals = await _goalService.loadGoals();
-    setState(() {
-      _steps = goals.steps.toDouble();
-      _sleep = goals.sleepHours;
-      _weight = goals.weight;
-      _loading = false;
-    });
+    try {
+      final goals = await _goalService.loadGoals();
+      setState(() {
+        _steps = goals.steps.toDouble();
+        _sleep = goals.sleepHours;
+        _weight = goals.weight;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load goals: $e')),
+      );
+    }
   }
 
   Future<void> _save() async {
@@ -43,6 +47,7 @@ class _GoalScreenState extends State<GoalScreen> {
       weight: _weight,
     );
     await _goalService.saveGoals(goals);
+    if (!mounted) return;
     Navigator.pop(context);
   }
 

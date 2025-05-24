@@ -1,3 +1,6 @@
+import 'package:diploma/pages/Main/goal_screen.dart';
+import 'package:diploma/pages/Main/nutrition_plan_screen.dart';
+import 'package:diploma/pages/Main/nutrition_screen.dart';
 import 'package:diploma/services/device_service.dart';
 import 'package:diploma/services/health_service.dart';
 import 'package:diploma/services/profile_service.dart';
@@ -50,6 +53,9 @@ class MyApp extends StatelessWidget {
         '/splash': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const BottomNavBarScreen(),
+        '/nutrition': (context) => const NutritionScreen(),
+        '/goal': (context) => const GoalScreen(),
+        '/nutritionPlan': (context) => const NutritionPlanScreen(),
       },
 
 

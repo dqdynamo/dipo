@@ -122,3 +122,100 @@ class _AddEditMealScreenState extends State<AddEditMealScreen> {
     );
   }
 }
+
+class AddMealDialog extends StatefulWidget {
+  const AddMealDialog({super.key});
+  @override
+  State<AddMealDialog> createState() => _AddMealDialogState();
+}
+
+class _AddMealDialogState extends State<AddMealDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _calCtrl = TextEditingController();
+  final _proCtrl = TextEditingController();
+  final _carbCtrl = TextEditingController();
+  final _fatCtrl = TextEditingController();
+  String _type = 'Breakfast';
+  final _types = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _calCtrl.dispose();
+    _proCtrl.dispose();
+    _carbCtrl.dispose();
+    _fatCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add Meal'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: _type,
+                items: _types.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                onChanged: (v) => setState(() => _type = v!),
+                decoration: const InputDecoration(labelText: 'Type'),
+              ),
+              TextFormField(
+                controller: _nameCtrl,
+                decoration: const InputDecoration(labelText: 'Meal Name'),
+                validator: (v) => v == null || v.trim().isEmpty ? 'Enter name' : null,
+              ),
+              TextFormField(
+                controller: _calCtrl,
+                decoration: const InputDecoration(labelText: 'Calories'),
+                keyboardType: TextInputType.number,
+                validator: (v) => v == null || int.tryParse(v) == null ? 'Enter calories' : null,
+              ),
+              TextFormField(
+                controller: _proCtrl,
+                decoration: const InputDecoration(labelText: 'Protein (g)'),
+                keyboardType: TextInputType.number,
+                validator: (v) => v == null || int.tryParse(v) == null ? 'Enter protein' : null,
+              ),
+              TextFormField(
+                controller: _carbCtrl,
+                decoration: const InputDecoration(labelText: 'Carbs (g)'),
+                keyboardType: TextInputType.number,
+                validator: (v) => v == null || int.tryParse(v) == null ? 'Enter carbs' : null,
+              ),
+              TextFormField(
+                controller: _fatCtrl,
+                decoration: const InputDecoration(labelText: 'Fat (g)'),
+                keyboardType: TextInputType.number,
+                validator: (v) => v == null || int.tryParse(v) == null ? 'Enter fat' : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+              Navigator.pop<Map<String, dynamic>>(context, {
+                'name': _nameCtrl.text,
+                'type': _type,
+                'calories': int.tryParse(_calCtrl.text) ?? 0,
+                'protein': int.tryParse(_proCtrl.text) ?? 0,
+                'carbs': int.tryParse(_carbCtrl.text) ?? 0,
+                'fat': int.tryParse(_fatCtrl.text) ?? 0,
+              });
+            }
+          },
+          child: const Text('Add'),
+        ),
+      ],
+    );
+  }
+}
