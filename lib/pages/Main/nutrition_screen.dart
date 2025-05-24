@@ -459,9 +459,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
                       borderRadius: BorderRadius.circular(16)),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(16),
-                    onTap: () {
-                      // Переход по маршруту (убедись, что /nutritionPlan зарегистрирован в main.dart)
-                      Navigator.pushNamed(context, '/nutritionPlan');
+                    onTap: () async {
+                      final updated = await Navigator.pushNamed(context, '/nutritionPlan');
+                      if (updated == true) {
+                        _loadAll();
+                      }
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -544,12 +546,12 @@ class _NutritionScreenState extends State<NutritionScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          '${value.toStringAsFixed(1)} г',
+          '${value.toStringAsFixed(1)} g',
           style: const TextStyle(
               fontWeight: FontWeight.w700, fontSize: 16, color: Colors.black),
         ),
         Text(
-          '${goal.toStringAsFixed(1)} г',
+          '${goal.toStringAsFixed(1)} g',
           style: TextStyle(
               fontWeight: FontWeight.w400,
               fontSize: 13,

@@ -1,4 +1,5 @@
 import 'package:diploma/pages/Main/goal_screen.dart';
+import 'package:diploma/pages/Main/more_screen.dart';
 import 'package:diploma/pages/Main/nutrition_plan_screen.dart';
 import 'package:diploma/pages/Main/nutrition_screen.dart';
 import 'package:diploma/services/device_service.dart';
@@ -37,6 +38,18 @@ void main() async {
   );
 }
 
+
+class ThemeProvider with ChangeNotifier {
+  bool _isDark = false;
+  bool get isDark => _isDark;
+
+  void toggleTheme(bool value) {
+    _isDark = value;
+    notifyListeners();
+    // SharedPreferences для сохранения
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -56,6 +69,8 @@ class MyApp extends StatelessWidget {
         '/nutrition': (context) => const NutritionScreen(),
         '/goal': (context) => const GoalScreen(),
         '/nutritionPlan': (context) => const NutritionPlanScreen(),
+        '/settings': (context) => const SettingsScreen(),
+        '/about': (context) => const AboutScreen(),
       },
 
 
@@ -68,6 +83,7 @@ class MyApp extends StatelessWidget {
         Locale('en', ''), // английский
         Locale('ru', ''), // русский
       ],
+
     );
   }
 }

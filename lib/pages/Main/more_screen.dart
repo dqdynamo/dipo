@@ -111,12 +111,22 @@ class MoreScreen extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.settings),
                     title: const Text("Settings"),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                      );
+                    },
                   ),
                   ListTile(
                     leading: const Icon(Icons.info),
                     title: const Text("About"),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AboutScreen()),
+                      );
+                    },
                   ),
                   const Divider(),
 
@@ -141,18 +151,32 @@ class MoreScreen extends StatelessWidget {
 
                   const SizedBox(height: 40),
 
-                  ElevatedButton.icon(
-                    onPressed: () async {
-                      await FirebaseAuth.instance.signOut();
-                      Navigator.pushReplacementNamed(context, '/splash');
-                    },
-                    icon: const Icon(Icons.logout, size: 22),
-                    label: const Text("Sign Out", style: TextStyle(fontSize: 16)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  // Скруглённая кнопка выхода:
+                  SizedBox(
+                    width: 180,
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await FirebaseAuth.instance.signOut();
+                        Navigator.pushReplacementNamed(context, '/splash');
+                      },
+                      icon: const Icon(Icons.logout, color: Colors.white, size: 26),
+                      label: const Text(
+                        "Sign Out",
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30), // 👈 Максимально скруглённые края
+                        ),
+                        elevation: 4,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -162,6 +186,28 @@ class MoreScreen extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      body: const Center(child: Text('Settings screen')),
+    );
+  }
+}
+
+class AboutScreen extends StatelessWidget {
+  const AboutScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('About')),
+      body: const Center(child: Text('About this app')),
     );
   }
 }

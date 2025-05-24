@@ -159,7 +159,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
       const SnackBar(content: Text('Plan Saved!')),
     );
 
-    Navigator.pushReplacementNamed(context, '/nutrition');
+    Navigator.pop(context, true);
   }
 
 
@@ -168,6 +168,14 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
   Widget build(BuildContext context) {
     final grad = const [Color(0xFFFF9240), Color(0xFFDD4733)];
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Nutrition Plan', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+      ),
+      extendBodyBehindAppBar: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
