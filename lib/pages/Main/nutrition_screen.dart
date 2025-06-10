@@ -111,7 +111,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
   void _changeDate(int offset) async {
     final nextDate = _selectedDate.add(Duration(days: offset));
     final today = DateTime.now();
-    // Не разрешаем выбрать дату в будущем
+    // Do not allow selecting a future date
     if (nextDate.isAfter(DateTime(today.year, today.month, today.day))) return;
 
     setState(() {
@@ -124,9 +124,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
     if (_plan == null || _currentWeight == null || _goalWeight == null) return null;
 
     double diff = (_currentWeight! - _goalWeight!).abs();
-    if (diff < 0.1) return null; // Уже достигнуто
+    if (diff < 0.1) return null; // Already reached
 
-    // 0.5 кг в неделю = 0.0714 кг/день
+    // 0.5 kg per week = 0.0714 kg/day
     double days = diff / 0.0714;
     int daysInt = days.round();
 
@@ -136,7 +136,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
     return "$daysInt days";
   }
 
-  Widget _buildTopHeader() {
+  Widget _buildTopHeader(BuildContext context) {
+    final theme = Theme.of(context);
+
     Widget buildArrow({required IconData icon, required VoidCallback? onTap, bool enabled = true}) {
       return GestureDetector(
         onTap: enabled ? onTap : null,
@@ -145,9 +147,15 @@ class _NutritionScreenState extends State<NutritionScreen> {
           height: 40,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: enabled ? Colors.grey.withOpacity(0.2) : Colors.grey.withOpacity(0.07),
+            color: enabled
+                ? theme.colorScheme.primary.withOpacity(0.10)
+                : theme.disabledColor.withOpacity(0.07),
           ),
-          child: Icon(icon, size: 24, color: enabled ? Colors.black87 : Colors.grey[400]),
+          child: Icon(
+            icon,
+            size: 24,
+            color: enabled ? theme.iconTheme.color : theme.disabledColor,
+          ),
         ),
       );
     }
@@ -175,41 +183,45 @@ class _NutritionScreenState extends State<NutritionScreen> {
             pct = (cals / target).clamp(0.0, 1.0);
           }
 
-          final col = pct >= 0.8 ? Colors.green : pct >= 0.3 ? Colors.orange : Colors.grey;
+          final Color col = pct >= 0.8
+              ? Colors.green
+              : pct >= 0.3
+              ? Colors.orange
+              : theme.disabledColor;
 
           if (!isMain) {
             return Column(
               children: [
-                Text('${(pct * 100).round()}%', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                Text('${(pct * 100).round()}%', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
                 CircularPercentIndicator(
                   radius: 38,
                   lineWidth: 6,
                   percent: pct,
                   progressColor: col,
-                  backgroundColor: Colors.grey.shade300,
+                  backgroundColor: theme.dividerColor,
                   circularStrokeCap: CircularStrokeCap.round,
                 ),
                 const SizedBox(height: 4),
-                Text(dateStr, style: const TextStyle(fontSize: 12)),
+                Text(dateStr, style: theme.textTheme.bodySmall),
               ],
             );
           }
 
           return Column(
             children: [
-              Text('${(pct * 100).round()}%', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text('${(pct * 100).round()}%', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
               CircularPercentIndicator(
                 radius: 60,
                 lineWidth: 10,
                 percent: pct,
                 progressColor: col,
-                backgroundColor: Colors.grey.shade300,
+                backgroundColor: theme.dividerColor,
                 circularStrokeCap: CircularStrokeCap.round,
                 center: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('$cals', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text('/ $target kcal', style: const TextStyle(fontSize: 12)),
+                    Text('$cals', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    Text('/ $target kcal', style: theme.textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -259,11 +271,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: theme.cardColor,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black12,
+                  color: theme.shadowColor.withOpacity(0.1),
                   blurRadius: 4,
                 ),
               ],
@@ -271,11 +283,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.calendar_today, size: 16),
+                Icon(Icons.calendar_today, size: 16, color: theme.iconTheme.color),
                 const SizedBox(width: 6),
                 Text(
                   DateFormat('EEEE, MMM d').format(_selectedDate),
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -286,8 +298,10 @@ class _NutritionScreenState extends State<NutritionScreen> {
     );
   }
 
-  Widget buildPlanInfoCards() {
-    if (_plan == null) return SizedBox();
+  Widget buildPlanInfoCards(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (_plan == null) return const SizedBox();
 
     final goalTitle = _plan!.goalType == NutritionGoalType.lose
         ? "Lose Weight"
@@ -310,32 +324,33 @@ class _NutritionScreenState extends State<NutritionScreen> {
             children: [
               Expanded(
                 child: Card(
-                  color: Colors.orange[50],
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                  color: theme.cardColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Your Plan",
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 14)),
+                        Text("Your Plan", style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.flag, color: Colors.orange[700], size: 20),
+                            Icon(Icons.flag, color: theme.colorScheme.primary, size: 20),
                             const SizedBox(width: 6),
-                            Text(goalTitle,
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                            Flexible(
+                              child: Text(
+                                goalTitle,
+                                style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 6),
                         Text(
                           "${_plan!.calorieTarget} kcal",
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 15),
+                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -345,32 +360,23 @@ class _NutritionScreenState extends State<NutritionScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Card(
-                  color: Colors.orange[50],
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                  color: theme.cardColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("BMI",
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 14)),
+                        Text("BMI", style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.monitor_weight,
-                                color: Colors.orange[700], size: 20),
+                            Icon(Icons.monitor_weight, color: theme.colorScheme.primary, size: 20),
                             const SizedBox(width: 6),
-                            Text(bmiValue,
-                                style: const TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold)),
+                            Text(bmiValue, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                           ],
                         ),
-                        Text(
-                          bmiLabel,
-                          style: const TextStyle(fontSize: 13),
-                        ),
+                        Text(bmiLabel, style: theme.textTheme.bodySmall),
                       ],
                     ),
                   ),
@@ -383,63 +389,53 @@ class _NutritionScreenState extends State<NutritionScreen> {
             children: [
               Expanded(
                 child: Card(
-                  color: Colors.orange[50],
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                  color: theme.cardColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Text("Weight Progress",
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 14)),
+                        Text("Weight Progress", style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.accessibility_new_rounded,
-                                color: Colors.orange[700], size: 20),
+                            Icon(Icons.accessibility_new_rounded, color: theme.colorScheme.primary, size: 20),
                             const SizedBox(width: 8),
                             Text(
                               "${_currentWeight?.toStringAsFixed(1) ?? '-'}",
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
+                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(width: 8),
-                            const Icon(Icons.arrow_forward_ios,
-                                size: 18, color: Colors.grey),
+                            Icon(Icons.arrow_forward_ios, size: 18, color: theme.disabledColor),
                             const SizedBox(width: 8),
-                            Icon(Icons.flag, color: Colors.orange[700], size: 20),
+                            Icon(Icons.flag, color: theme.colorScheme.primary, size: 20),
                             const SizedBox(width: 4),
                             Text(
                               "${_goalWeight?.toStringAsFixed(1) ?? '-'} kg",
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
+                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
                         const SizedBox(height: 6),
                         Text(
                           "Current   →   Goal",
-                          style: TextStyle(
-                              fontWeight: FontWeight.w400,
-                              fontSize: 13,
-                              color: Colors.grey[600]),
+                          style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
                         ),
                         if (estimated != null) ...[
                           const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.timer, size: 18, color: Colors.orange[700]),
+                              Icon(Icons.timer, size: 18, color: theme.colorScheme.primary),
                               const SizedBox(width: 6),
                               Text(
                                 "Estimated: $estimated",
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.w500),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onBackground,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ],
                           )
@@ -450,13 +446,12 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              // Карточка для смены плана
+              // Card for plan change
               SizedBox(
                 width: 120,
                 child: Card(
-                  color: Colors.orange[100],
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                  color: theme.colorScheme.secondaryContainer,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(16),
                     onTap: () async {
@@ -466,19 +461,18 @@ class _NutritionScreenState extends State<NutritionScreen> {
                       }
                     },
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 16, horizontal: 8),
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.settings, color: Colors.orange, size: 28),
-                          SizedBox(height: 10),
+                        children: [
+                          Icon(Icons.settings, color: theme.colorScheme.primary, size: 28),
+                          const SizedBox(height: 10),
                           Text(
                             "Change\nPlan",
-                            style: TextStyle(
-                                color: Colors.black87,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSecondaryContainer,
+                              fontWeight: FontWeight.w600,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -498,9 +492,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
     required String label,
     required double value,
     required double goal,
+    BuildContext? context,
   }) {
     final pct = value / goal;
     final pctInt = (pct * 100).round();
+    final theme = context != null ? Theme.of(context) : null;
 
     Color pctColor;
     if (pct >= 1.0)
@@ -510,17 +506,14 @@ class _NutritionScreenState extends State<NutritionScreen> {
     else if (pct >= 0.4)
       pctColor = Colors.orange;
     else
-      pctColor = Colors.yellow[700]!;
+      pctColor = theme?.colorScheme.primary ?? Colors.yellow[700]!;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
-          style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              color: Colors.black),
+          style: theme?.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 4),
         Stack(
@@ -530,7 +523,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
               radius: 42,
               lineWidth: 7,
               percent: pct > 1 ? 1 : pct,
-              backgroundColor: Colors.grey.shade300,
+              backgroundColor: theme?.dividerColor ?? Colors.grey.shade300,
               progressColor: pctColor,
               circularStrokeCap: CircularStrokeCap.round,
               animation: true,
@@ -538,24 +531,21 @@ class _NutritionScreenState extends State<NutritionScreen> {
             Text(
               '$pctInt %',
               style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: pctColor),
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: pctColor,
+              ),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
           '${value.toStringAsFixed(1)} g',
-          style: const TextStyle(
-              fontWeight: FontWeight.w700, fontSize: 16, color: Colors.black),
+          style: theme?.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         Text(
           '${goal.toStringAsFixed(1)} g',
-          style: TextStyle(
-              fontWeight: FontWeight.w400,
-              fontSize: 13,
-              color: Colors.grey.shade400),
+          style: theme?.textTheme.bodySmall?.copyWith(color: theme?.hintColor),
         ),
       ],
     );
@@ -563,8 +553,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final newMeal = await showDialog<Map<String, dynamic>>(
@@ -583,17 +574,17 @@ class _NutritionScreenState extends State<NutritionScreen> {
             _loadDay();
           }
         },
-        backgroundColor: Colors.orange[100],
-        child: const Icon(Icons.add, color: Colors.black87),
+        backgroundColor: theme.colorScheme.secondaryContainer,
+        child: Icon(Icons.add, color: theme.colorScheme.onSecondaryContainer),
         elevation: 3,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
         children: [
-          _buildTopHeader(),
-          buildPlanInfoCards(),
-          // Макро-кольца
+          _buildTopHeader(context),
+          buildPlanInfoCards(context),
+          // Macro rings
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 18),
             child: Row(
@@ -603,40 +594,44 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   label: 'Protein',
                   value: _protein,
                   goal: _plan?.proteinTarget ?? 1,
+                  context: context,
                 ),
                 macroCircle(
                   label: 'Carbs',
                   value: _carbs,
                   goal: _plan?.carbsTarget ?? 1,
+                  context: context,
                 ),
                 macroCircle(
                   label: 'Fat',
                   value: _fat,
                   goal: _plan?.fatTarget ?? 1,
+                  context: context,
                 ),
               ],
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text("Meals",
-                style: TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              "Meals",
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(height: 8),
           ..._meals.map((meal) => Card(
-            margin: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 6),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            color: theme.cardColor,
             child: ListTile(
-              leading: const Icon(Icons.restaurant_menu,
-                  color: Colors.orange),
-              title: Text(meal['name']),
+              leading: Icon(Icons.restaurant_menu, color: theme.colorScheme.primary),
+              title: Text(meal['name'], style: theme.textTheme.bodyLarge),
               subtitle: Text(
-                  '${meal['calories']} kcal • P:${meal['protein']} F:${meal['fat']} C:${meal['carbs']}'),
+                '${meal['calories']} kcal • P:${meal['protein']} F:${meal['fat']} C:${meal['carbs']}',
+                style: theme.textTheme.bodySmall,
+              ),
               trailing: IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
+                icon: Icon(Icons.delete, color: theme.colorScheme.error),
                 onPressed: () => _deleteMeal(meal['id']),
               ),
             ),

@@ -77,7 +77,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final grad = const [Color(0xFFFF9240), Color(0xFFDD4733)];
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final grad = isDark
+        ? [const Color(0xFF22212C), const Color(0xFF2E294E)]
+        : [const Color(0xFFFF9240), const Color(0xFFDD4733)];
 
     return Scaffold(
       body: Container(
@@ -98,10 +102,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   data = st.weeklySteps(monday);
                   break;
                 case 1:
-                  final monthStart = DateTime(
-                    _selectedDate.year,
-                    _selectedDate.month,
-                  );
+                  final monthStart = DateTime(_selectedDate.year, _selectedDate.month);
                   data = st.monthlySteps(monthStart);
                   break;
                 case 2:
@@ -120,7 +121,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       children: [
                         GestureDetector(
                           onTap: _pickDate,
-                          child: const Icon(
+                          child: Icon(
                             Icons.calendar_today,
                             color: Colors.white,
                           ),
@@ -162,6 +163,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                         data: data,
                         isActivity: true,
                         period: _period,
+                        isDark: isDark,
                       ),
                     ),
                   ),
@@ -189,13 +191,25 @@ class _ProgressScreenState extends State<ProgressScreen> {
                         horizontal: 18,
                         vertical: 22,
                       ),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.vertical(
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF191825) : Colors.white,
+                        borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(26),
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark
+                                ? Colors.black.withOpacity(0.09)
+                                : theme.shadowColor.withOpacity(0.09),
+                            blurRadius: 14,
+                          ),
+                        ],
                       ),
-                      child: _ActivityStats(data: data, period: _period),
+                      child: _ActivityStats(
+                        data: data,
+                        period: _period,
+                        isDark: isDark,
+                      ),
                     ),
                   ),
                 ],
@@ -234,11 +248,13 @@ class _Chart extends StatelessWidget {
   final List<int> data;
   final bool isActivity;
   final int period;
+  final bool isDark;
 
   const _Chart({
     required this.data,
     required this.isActivity,
     required this.period,
+    required this.isDark,
   });
 
   @override
@@ -254,8 +270,8 @@ class _Chart extends StatelessWidget {
           show: true,
           horizontalInterval: maxY / 4,
           drawVerticalLine: false,
-          getDrawingHorizontalLine:
-              (v) => FlLine(color: Colors.white24, strokeWidth: 1),
+          getDrawingHorizontalLine: (v) =>
+              FlLine(color: isDark ? Colors.white24 : Colors.white24, strokeWidth: 1),
         ),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
@@ -263,10 +279,10 @@ class _Chart extends StatelessWidget {
               reservedSize: 40,
               interval: maxY / 4,
               showTitles: true,
-              getTitlesWidget:
-                  (v, _) => Text(
+              getTitlesWidget: (v, _) => Text(
                 v.toInt().toString(),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black54, fontSize: 12),
               ),
             ),
           ),
@@ -290,15 +306,18 @@ class _Chart extends StatelessWidget {
                     if (shownDays.contains(index)) text = '${index + 1}';
                     break;
                   case 2:
-                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const months = [
+                      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                    ];
                     if (index >= 0 && index < months.length) text = months[index];
                     break;
                 }
 
                 return Padding(
                   padding: const EdgeInsets.only(top: 10),
-                  child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                  child: Text(text, style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.black54, fontSize: 11)),
                 );
               },
             ),
@@ -310,14 +329,13 @@ class _Chart extends StatelessWidget {
             spots: List.generate(data.length, (i) => FlSpot(i.toDouble(), data[i].toDouble())),
             isCurved: false,
             barWidth: 2,
-            color: Colors.white,
+            color: isDark ? Colors.white : Colors.deepOrange,
             dotData: FlDotData(
               show: true,
-              getDotPainter:
-                  (spot, percent, barData, index) => FlDotCirclePainter(
+              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
                 radius: 3,
-                color: Colors.white,
-                strokeColor: Colors.white,
+                color: isDark ? Colors.white : Colors.deepOrange,
+                strokeColor: isDark ? Colors.white : Colors.deepOrange,
                 strokeWidth: 0,
               ),
             ),
@@ -331,8 +349,9 @@ class _Chart extends StatelessWidget {
 class _ActivityStats extends StatelessWidget {
   final List<int> data;
   final int period;
+  final bool isDark;
 
-  const _ActivityStats({required this.data, required this.period});
+  const _ActivityStats({required this.data, required this.period, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -349,17 +368,17 @@ class _ActivityStats extends StatelessWidget {
       children: [
         Row(
           children: [
-            _Item('Distance', totalDistance.toStringAsFixed(2), 'km'),
-            _Item('Steps', '$totalSteps', 'steps'),
-            _Item('Calories', '$totalCal', 'kcal'),
+            _Item('Distance', totalDistance.toStringAsFixed(2), 'km', isDark: isDark),
+            _Item('Steps', '$totalSteps', 'steps', isDark: isDark),
+            _Item('Calories', '$totalCal', 'kcal', isDark: isDark),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
-            _Item('Avg dist/day', avgDistance.toStringAsFixed(2), 'km'),
-            _Item('Avg steps/day', '$avgSteps', 'steps'),
-            _Item('Avg cal/day', '$avgCal', 'kcal'),
+            _Item('Avg dist/day', avgDistance.toStringAsFixed(2), 'km', isDark: isDark),
+            _Item('Avg steps/day', '$avgSteps', 'steps', isDark: isDark),
+            _Item('Avg cal/day', '$avgCal', 'kcal', isDark: isDark),
           ],
         ),
       ],
@@ -371,24 +390,30 @@ class _Item extends StatelessWidget {
   final String label;
   final String value;
   final String unit;
+  final bool isDark;
 
-  const _Item(this.label, this.value, this.unit);
+  const _Item(this.label, this.value, this.unit, {required this.isDark});
 
   @override
   Widget build(BuildContext ctx) => Expanded(
     child: Column(
       children: [
-        Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+        Text(label,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black54)),
         const SizedBox(height: 4),
         RichText(
           textAlign: TextAlign.center,
           text: TextSpan(
             text: value,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black),
             children: [
               TextSpan(
                 text: unit,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.normal),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.normal, color: isDark ? Colors.white54 : Colors.black54),
               ),
             ],
           ),

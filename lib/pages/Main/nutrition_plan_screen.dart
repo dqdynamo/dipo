@@ -45,13 +45,15 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) {
+        final theme = Theme.of(context);
         return StatefulBuilder(
           builder: (context, setState) => AlertDialog(
-            title: const Text('Adjust Weight Goal'),
+            backgroundColor: theme.colorScheme.surface,
+            title: Text('Adjust Weight Goal', style: TextStyle(color: theme.colorScheme.onSurface)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(message),
+                Text(message, style: TextStyle(color: theme.colorScheme.onSurface)),
                 const SizedBox(height: 12),
                 TextField(
                   controller: controller,
@@ -130,15 +132,14 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
       goalWeight = confirm;
     }
 
-
     if (_selectedGoal == NutritionGoalType.gain && goalWeight <= currentWeight!) {
-    final confirm = await _confirmGoalCorrection(
-    message: 'To gain weight, goal must be more than current weight.',
-    currentWeight: currentWeight,
-    shouldBeLess: false,
-    );
-    if (confirm == null) return;
-    goalWeight = confirm;
+      final confirm = await _confirmGoalCorrection(
+        message: 'To gain weight, goal must be more than current weight.',
+        currentWeight: currentWeight,
+        shouldBeLess: false,
+      );
+      if (confirm == null) return;
+      goalWeight = confirm;
     }
 
     await FirebaseFirestore.instance
@@ -162,24 +163,22 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
     Navigator.pop(context, true);
   }
 
-
-
   @override
   Widget build(BuildContext context) {
-    final grad = const [Color(0xFFFF9240), Color(0xFFDD4733)];
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Nutrition Plan', style: TextStyle(color: Colors.white)),
+        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
+        title: Text('Nutrition Plan', style: TextStyle(color: theme.colorScheme.onSurface)),
         centerTitle: true,
       ),
       extendBodyBehindAppBar: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: grad,
+            colors: [theme.colorScheme.secondary.withOpacity(0.7), theme.colorScheme.background],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -187,27 +186,27 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: _buildStep(),
+            child: _buildStep(theme),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildStep() {
+  Widget _buildStep(ThemeData theme) {
     switch (_step) {
       case 0:
-        return _introStep();
+        return _introStep(theme);
       case 1:
-        return _bmiResultStep();
+        return _bmiResultStep(theme);
       case 2:
-        return _planSelectionStep();
+        return _planSelectionStep(theme);
       default:
         return const Center(child: Text('Invalid state'));
     }
   }
 
-  Widget _introStep() {
+  Widget _introStep(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -216,12 +215,15 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Welcome to Nutrition Setup',
-                  style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: theme.colorScheme.onBackground,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 20),
-                _card([
+                _card(theme, [
                   const Text('What is BMI?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
                   const Text(
@@ -234,12 +236,12 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        _button('Calculate My BMI', _calculateBMIAndPlan),
+        _button(theme, 'Calculate My BMI', _calculateBMIAndPlan),
       ],
     );
   }
 
-  Widget _bmiResultStep() {
+  Widget _bmiResultStep(ThemeData theme) {
     final bmi = _plan!.bmi;
     final bmiCategory =
     bmi < 18.5 ? 'Underweight' : (bmi < 25 ? 'Normal' : (bmi < 30 ? 'Overweight' : 'Obese'));
@@ -252,12 +254,15 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Your BMI Result',
-                  style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: theme.colorScheme.onBackground,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 20),
-                _card([
+                _card(theme, [
                   Text('BMI: ${bmi.toStringAsFixed(1)} ($bmiCategory)', style: const TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   Text('BMR: ${_plan!.bmr.round()} kcal/day'),
@@ -265,6 +270,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
                 ]),
                 const SizedBox(height: 16),
                 _accordionCard(
+                  theme: theme,
                   title: 'What is BMR and TDEE?',
                   expanded: _showBmrInfo,
                   onTap: () => setState(() => _showBmrInfo = !_showBmrInfo),
@@ -276,6 +282,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
                 ),
                 const SizedBox(height: 12),
                 _accordionCard(
+                  theme: theme,
                   title: 'BMI Categories by Gender',
                   expanded: _showBmiInfo,
                   onTap: () => setState(() => _showBmiInfo = !_showBmiInfo),
@@ -298,12 +305,12 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        _button('Choose Goal Plan', () => setState(() => _step = 2)),
+        _button(theme, 'Choose Goal Plan', () => setState(() => _step = 2)),
       ],
     );
   }
 
-  Widget _planSelectionStep() {
+  Widget _planSelectionStep(ThemeData theme) {
     final recommendation = _plan!.goalType;
     final reason = recommendation == NutritionGoalType.lose
         ? 'Your BMI indicates excess weight. We recommend a weight loss plan.'
@@ -331,91 +338,74 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Choose Your Goal',
-                  style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: theme.colorScheme.onBackground,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 20),
-                _card([
+                _card(theme, [
                   RadioListTile<NutritionGoalType>(
                     value: NutritionGoalType.maintain,
                     groupValue: _selectedGoal,
                     onChanged: (v) => setState(() => _selectedGoal = v),
                     title: const Text('⚖️ Maintain weight'),
+                    activeColor: theme.colorScheme.secondary,
                   ),
                   RadioListTile<NutritionGoalType>(
                     value: NutritionGoalType.lose,
                     groupValue: _selectedGoal,
                     onChanged: (v) => setState(() => _selectedGoal = v),
                     title: const Text('🔻 Lose weight'),
+                    activeColor: theme.colorScheme.secondary,
                   ),
                   RadioListTile<NutritionGoalType>(
                     value: NutritionGoalType.gain,
                     groupValue: _selectedGoal,
                     onChanged: (v) => setState(() => _selectedGoal = v),
                     title: const Text('🔺 Gain weight'),
+                    activeColor: theme.colorScheme.secondary,
                   ),
                 ]),
                 const SizedBox(height: 16),
-                _card([
+                _card(theme, [
                   Text('$icon Recommended Plan: $title',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
                   Text(reason),
-                ], color: Colors.green.shade50),
+                ], color: theme.colorScheme.secondaryContainer.withOpacity(0.2)),
               ],
             ),
           ),
         ),
         const SizedBox(height: 16),
-        _button('Apply Plan', _saveFinalPlan),
+        _button(theme, 'Apply Plan', _saveFinalPlan),
       ],
     );
   }
 
-  Widget _confirmationStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Plan Saved!',
-                    style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 20),
-                _card([
-                  Text('🎯 Calorie Target: ${_plan!.calorieTarget} kcal/day',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  if (_currentWeight != null && _goalWeight != null)
-                    Text('Current: ${_currentWeight!.toStringAsFixed(1)} kg → Goal: ${_goalWeight!.toStringAsFixed(1)} kg'),
-                ]),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        _button('Finish', () => Navigator.pop(context)),
-      ],
-    );
-  }
-
-  Widget _card(List<Widget> children, {Color? color}) {
+  // Card style adapted to theme
+  Widget _card(ThemeData theme, List<Widget> children, {Color? color}) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: color ?? Colors.white.withOpacity(0.95),
+        color: color ?? theme.colorScheme.surface.withOpacity(theme.brightness == Brightness.dark ? 0.85 : 0.96),
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12)],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12)],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+      child: DefaultTextStyle(
+        style: theme.textTheme.bodyMedium!.copyWith(color: theme.colorScheme.onSurface),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+      ),
     );
   }
 
   Widget _accordionCard({
+    required ThemeData theme,
     required String title,
     required bool expanded,
     required VoidCallback onTap,
@@ -427,41 +417,48 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.surface.withOpacity(theme.brightness == Brightness.dark ? 0.92 : 1),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10)],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
-                Icon(expanded ? Icons.expand_less : Icons.expand_more),
-              ],
-            ),
-            if (expanded) const SizedBox(height: 10),
-            if (expanded) content,
-          ],
+        child: DefaultTextStyle(
+          style: theme.textTheme.bodyMedium!.copyWith(color: theme.colorScheme.onSurface),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                  Icon(expanded ? Icons.expand_less : Icons.expand_more, color: theme.iconTheme.color),
+                ],
+              ),
+              if (expanded) const SizedBox(height: 10),
+              if (expanded) content,
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _button(String label, VoidCallback onPressed) {
+  // Button with dynamic color for dark/light
+  Widget _button(ThemeData theme, String label, VoidCallback onPressed) {
+    final isDark = theme.brightness == Brightness.dark;
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
+          backgroundColor: isDark ? theme.colorScheme.secondary : theme.colorScheme.primary,
+          foregroundColor: theme.colorScheme.onPrimary,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+          elevation: 3,
         ),
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        child: Text(label),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'profile_screen.dart';
+import 'package:diploma/pages/Main/settings_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -23,9 +24,10 @@ class MoreScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final User? user = FirebaseAuth.instance.currentUser;
     final healthService = HealthService();
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.background, // <-- Автоматическая поддержка темы
       appBar: AppBar(
         backgroundColor: Colors.deepOrange,
         elevation: 0,
@@ -62,24 +64,27 @@ class MoreScreen extends StatelessWidget {
                     },
                     child: CircleAvatar(
                       radius: 40,
-                      backgroundColor: Colors.grey.shade300,
+                      backgroundColor: theme.colorScheme.surfaceVariant,
                       backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
                       child: photoUrl == null
-                          ? const Icon(Icons.person, color: Colors.white, size: 40)
+                          ? Icon(Icons.person, color: theme.colorScheme.onSurfaceVariant, size: 40)
                           : null,
                     ),
                   ),
                   const SizedBox(height: 10),
                   Text(
                     name,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                   ),
-                  Text(user?.email ?? "No email"),
+                  Text(
+                    user?.email ?? "No email",
+                    style: theme.textTheme.bodyMedium,
+                  ),
                   const SizedBox(height: 30),
 
                   ListTile(
-                    leading: const Icon(Icons.account_circle),
-                    title: const Text("Profile"),
+                    leading: Icon(Icons.account_circle, color: theme.iconTheme.color),
+                    title: Text("Profile", style: theme.textTheme.bodyLarge),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -90,8 +95,8 @@ class MoreScreen extends StatelessWidget {
                   const Divider(),
 
                   ListTile(
-                    leading: const Icon(Icons.favorite),
-                    title: const Text("Синхронизация с Google Fit / Apple Health"),
+                    leading: Icon(Icons.favorite, color: theme.iconTheme.color),
+                    title: Text("Синхронизация с Google Fit / Apple Health", style: theme.textTheme.bodyLarge),
                     onTap: () async {
                       final success = await healthService.requestAuthorization();
                       if (success) {
@@ -109,8 +114,8 @@ class MoreScreen extends StatelessWidget {
                   const Divider(),
 
                   ListTile(
-                    leading: const Icon(Icons.settings),
-                    title: const Text("Settings"),
+                    leading: Icon(Icons.settings, color: theme.iconTheme.color),
+                    title: Text("Settings", style: theme.textTheme.bodyLarge),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -118,9 +123,10 @@ class MoreScreen extends StatelessWidget {
                       );
                     },
                   ),
+
                   ListTile(
-                    leading: const Icon(Icons.info),
-                    title: const Text("About"),
+                    leading: Icon(Icons.info, color: theme.iconTheme.color),
+                    title: Text("About", style: theme.textTheme.bodyLarge),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -131,8 +137,8 @@ class MoreScreen extends StatelessWidget {
                   const Divider(),
 
                   ExpansionTile(
-                    leading: const Icon(Icons.help_outline),
-                    title: const Text("FAQ"),
+                    leading: Icon(Icons.help_outline, color: theme.iconTheme.color),
+                    title: Text("FAQ", style: theme.textTheme.bodyLarge),
                     children: const [
                       ListTile(
                         title: Text("How to sync with Google Fit or Apple Health?"),
@@ -151,7 +157,7 @@ class MoreScreen extends StatelessWidget {
 
                   const SizedBox(height: 40),
 
-                  // Скруглённая кнопка выхода:
+                  // Sign Out button with proper color for dark/light theme
                   SizedBox(
                     width: 180,
                     height: 52,
@@ -160,20 +166,20 @@ class MoreScreen extends StatelessWidget {
                         await FirebaseAuth.instance.signOut();
                         Navigator.pushReplacementNamed(context, '/splash');
                       },
-                      icon: const Icon(Icons.logout, color: Colors.white, size: 26),
+                      icon: const Icon(Icons.logout, size: 26, color: Colors.white),
                       label: const Text(
                         "Sign Out",
                         style: TextStyle(
                           fontSize: 18,
-                          color: Colors.white,
                           fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.red,      // ЯРКО-КРАСНЫЙ цвет кнопки!
+                        foregroundColor: Colors.white,    // Белый текст и иконка
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30), // 👈 Максимально скруглённые края
+                          borderRadius: BorderRadius.circular(30),
                         ),
                         elevation: 4,
                       ),
@@ -186,17 +192,6 @@ class MoreScreen extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: const Center(child: Text('Settings screen')),
     );
   }
 }

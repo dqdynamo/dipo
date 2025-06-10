@@ -1,68 +1,65 @@
-import 'package:diploma/pages/Main/goal_screen.dart';
-import 'package:diploma/pages/Main/more_screen.dart';
-import 'package:diploma/pages/Main/nutrition_plan_screen.dart';
-import 'package:diploma/pages/Main/nutrition_screen.dart';
+import 'package:diploma/providers/theme_provider.dart';
+import 'package:diploma/services/activity_tracker_service.dart';
 import 'package:diploma/services/device_service.dart';
-import 'package:diploma/services/health_service.dart';
 import 'package:diploma/services/profile_service.dart';
-import 'package:diploma/services/sleep_tracker_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:diploma/pages/Authentication/splash_screen.dart';
-import 'package:diploma/pages/Authentication/login_screen.dart';
-import 'package:diploma/pages/Main/bottom_nav_bar.dart';
 import 'package:provider/provider.dart';
-import 'package:diploma/services/activity_tracker_service.dart';
-import 'package:intl/date_symbol_data_local.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:easy_localization/easy_localization.dart';
 
-
-
+import 'pages/Authentication/email_checker_screen.dart';
+import 'pages/Authentication/splash_screen.dart';
+import 'pages/Authentication/login_screen.dart';
+import 'pages/Main/bottom_nav_bar.dart';
+import 'pages/Main/goal_screen.dart';
+import 'pages/Main/nutrition_screen.dart';
+import 'pages/Main/nutrition_plan_screen.dart';
+import 'pages/Main/more_screen.dart';
+import 'pages/Main/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  await initializeDateFormatting('ru', null);
+  await EasyLocalization.ensureInitialized();
 
-  final healthService = HealthService();
-  await healthService.configure();
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ProfileService()),
-        ChangeNotifierProvider(create: (context) => ActivityTrackerService()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => ActivityTrackerService()),
         ChangeNotifierProvider(create: (_) => DeviceService()),
+        ChangeNotifierProvider(create: (_) => ProfileService()),
       ],
-      child: const MyApp(),
+      child: EasyLocalization(
+        supportedLocales: const [Locale('en'), Locale('ru')],
+        path: 'assets/lang',
+        fallbackLocale: const Locale('en'),
+        child: const MyApp(),
+      ),
     ),
   );
 }
 
-
-class ThemeProvider with ChangeNotifier {
-  bool _isDark = false;
-  bool get isDark => _isDark;
-
-  void toggleTheme(bool value) {
-    _isDark = value;
-    notifyListeners();
-    // SharedPreferences для сохранения
-  }
-}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Fitness Tracker',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: themeProvider.isDark ? ThemeMode.dark : ThemeMode.light,
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
       initialRoute: '/splash',
       routes: {
+        '/emailChecker': (context) => const EmailCheckerScreen(),
         '/splash': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const BottomNavBarScreen(),
@@ -70,20 +67,7 @@ class MyApp extends StatelessWidget {
         '/goal': (context) => const GoalScreen(),
         '/nutritionPlan': (context) => const NutritionPlanScreen(),
         '/settings': (context) => const SettingsScreen(),
-        '/about': (context) => const AboutScreen(),
       },
-
-
-      localizationsDelegates: [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('en', ''), // английский
-        Locale('ru', ''), // русский
-      ],
-
     );
   }
 }

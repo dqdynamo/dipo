@@ -63,11 +63,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final grad = const [Color(0xFFFF9240), Color(0xFFDD4733)];
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final grad = isDark
+        ? [const Color(0xFF22212C), const Color(0xFF2E294E)]
+        : [const Color(0xFFFF9240), const Color(0xFFDD4733)];
 
     return Screenshot(
       controller: _screenshotController,
       child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -85,7 +91,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.flag, color: Colors.white),
+                          icon: Icon(Icons.flag, color: isDark ? Colors.white : Colors.white),
                           onPressed: () {
                             Navigator.push(
                               context,
@@ -102,19 +108,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             children: [
                               Text(
                                 _label,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 19,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: isDark ? Colors.white : Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const Icon(Icons.arrow_drop_down, color: Colors.white),
+                              Icon(Icons.arrow_drop_down, color: isDark ? Colors.white : Colors.white),
                             ],
                           ),
                         ),
                         const Spacer(),
                         IconButton(
-                          icon: const Icon(Icons.share, color: Colors.white),
+                          icon: Icon(Icons.share, color: isDark ? Colors.white : Colors.white),
                           onPressed: () async {
                             try {
                               final image = await _screenshotController.capture();
@@ -150,9 +155,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF191825) : Colors.white,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark
+                              ? Colors.black.withOpacity(0.09)
+                              : theme.shadowColor.withOpacity(0.09),
+                          blurRadius: 14,
+                        ),
+                      ],
                     ),
                     child: _ActivityStats(st: st),
                   ),
@@ -174,6 +187,8 @@ class _ActivityChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext ctx) {
+    final theme = Theme.of(ctx);
+    final isDark = theme.brightness == Brightness.dark;
     final pct = goalSteps > 0 ? (st.steps / goalSteps).clamp(0.0, 1.0) : 0.0;
     return SizedBox(
       height: 320,
@@ -181,34 +196,44 @@ class _ActivityChart extends StatelessWidget {
         radius: 150,
         lineWidth: 20,
         percent: pct,
-        backgroundColor: Colors.white24,
-        progressColor: Colors.white,
+        backgroundColor: isDark ? Colors.white24 : Colors.white24,
+        progressColor: isDark ? Colors.white : theme.colorScheme.primary,
         circularStrokeCap: CircularStrokeCap.round,
         center: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.directions_walk, color: Colors.white, size: 42),
+            Icon(Icons.directions_walk, color: isDark ? Colors.white : theme.colorScheme.primary, size: 42),
             const SizedBox(height: 8),
             Text(
               '${st.steps}',
-              style: const TextStyle(fontSize: 56, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(
+                fontSize: 56,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : theme.colorScheme.primary,
+              ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
               margin: const EdgeInsets.only(top: 4),
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: isDark ? Colors.white10 : Colors.white24,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Text('steps', style: TextStyle(color: Colors.white, fontSize: 14)),
+              child: Text(
+                'steps',
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : theme.colorScheme.primary,
+                  fontSize: 14,
+                ),
+              ),
             ),
             Text(
               'Goal: $goalSteps',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(color: isDark ? Colors.white70 : theme.colorScheme.primary, fontSize: 14),
             ),
             Text(
               'Completed: ${(100 * pct).round()}%',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(color: isDark ? Colors.white70 : theme.colorScheme.primary, fontSize: 14),
             ),
           ],
         ),
@@ -224,15 +249,38 @@ class _ActivityStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final cal = (st.steps * 0.04).toInt();
     final dist = st.steps * 0.0008;
     final mins = (st.steps / 100).round();
 
     return Row(
       children: [
-        _Card(Icons.local_fire_department, 'Calories', '$cal', 'kcal', Colors.deepOrange),
-        _Card(Icons.place, 'Distance', dist.toStringAsFixed(2), 'km', Colors.blueAccent),
-        _Card(Icons.timer, 'Duration', '$mins', 'min', Colors.amber),
+        _Card(
+          Icons.local_fire_department,
+          'Calories',
+          '$cal',
+          'kcal',
+          isDark ? Colors.white : theme.colorScheme.primary,
+          isDark: isDark,
+        ),
+        _Card(
+          Icons.place,
+          'Distance',
+          dist.toStringAsFixed(2),
+          'km',
+          isDark ? Colors.white : theme.colorScheme.secondary,
+          isDark: isDark,
+        ),
+        _Card(
+          Icons.timer,
+          'Duration',
+          '$mins',
+          'min',
+          isDark ? Colors.white : Colors.pinkAccent,
+          isDark: isDark,
+        ),
       ],
     );
   }
@@ -242,21 +290,23 @@ class _Card extends StatelessWidget {
   final IconData ic;
   final String label, val, unit;
   final Color col;
+  final bool isDark;
 
-  const _Card(this.ic, this.label, this.val, this.unit, this.col);
+  const _Card(this.ic, this.label, this.val, this.unit, this.col, {this.isDark = false});
 
   @override
   Widget build(BuildContext ctx) {
+    final theme = Theme.of(ctx);
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 6),
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF191825) : theme.cardColor,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: col.withOpacity(0.15),
+              color: col.withOpacity(isDark ? 0.07 : 0.15),
               blurRadius: 10,
               offset: const Offset(0, 6),
             ),
@@ -268,7 +318,7 @@ class _Card extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: col.withOpacity(0.1),
+                color: col.withOpacity(0.09),
                 shape: BoxShape.circle,
               ),
               child: Icon(ic, color: col, size: 24),
@@ -276,10 +326,20 @@ class _Card extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               '$val $unit',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: col),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : col,
+              ),
             ),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 13, color: Colors.black54)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+            ),
           ],
         ),
       ),
@@ -310,10 +370,12 @@ class _SyncButtonState extends State<_SyncButton> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return ElevatedButton.icon(
       style: ElevatedButton.styleFrom(
-        foregroundColor: Colors.white,
-        backgroundColor: Colors.white24,
+        foregroundColor: isDark ? Colors.white : theme.colorScheme.onPrimary,
+        backgroundColor: isDark ? Colors.white10 : Colors.white24,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       ),
@@ -324,10 +386,13 @@ class _SyncButtonState extends State<_SyncButton> {
         height: 20,
         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
       )
-          : const Icon(Icons.sync),
+          : Icon(Icons.sync, color: isDark ? Colors.white : theme.colorScheme.primary),
       label: Text(
         _loading ? 'Syncing...' : 'Sync Steps',
-        style: const TextStyle(fontWeight: FontWeight.bold),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: isDark ? Colors.white : theme.colorScheme.primary,
+        ),
       ),
     );
   }

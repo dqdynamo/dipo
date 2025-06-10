@@ -19,10 +19,10 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _checkUser() async {
-    await Future.delayed(const Duration(seconds: 1)); // Задержка для UX
+    await Future.delayed(const Duration(seconds: 1));
     User? user = FirebaseAuth.instance.currentUser;
     if (mounted && user != null) {
-      Navigator.pushReplacementNamed(context, '/home'); // Только если пользователь авторизован
+      Navigator.pushReplacementNamed(context, '/home');
     }
   }
 

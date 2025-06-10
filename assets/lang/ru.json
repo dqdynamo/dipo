@@ -1,0 +1,15 @@
+{
+  "settings": "Настройки",
+  "dark_theme": "Тёмная тема",
+  "language": "Язык",
+  "language_changed": "Язык изменён.",
+  "notifications": "Уведомления",
+  "app_version": "Версия приложения",
+  "privacy_policy": "Политика конфиденциальности",
+  "support": "Поддержка",
+  "delete_account": "Удалить аккаунт",
+  "delete": "Удалить",
+  "cancel": "Отмена",
+  "account_deleted": "Аккаунт удалён.",
+  "reauth_required": "Требуется повторная авторизация. Пожалуйста, войдите снова."
+}

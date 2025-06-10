@@ -1,0 +1,15 @@
+{
+  "settings": "Settings",
+  "dark_theme": "Dark Theme",
+  "language": "Language",
+  "language_changed": "Language changed.",
+  "notifications": "Notifications",
+  "app_version": "App Version",
+  "privacy_policy": "Privacy Policy",
+  "support": "Support",
+  "delete_account": "Delete Account",
+  "delete": "Delete",
+  "cancel": "Cancel",
+  "account_deleted": "Account deleted.",
+  "reauth_required": "Re-authentication required. Please log in again."
+}
