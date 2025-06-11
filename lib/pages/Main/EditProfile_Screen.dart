@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -24,7 +25,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isLoading = true;
   bool _isSaving = false;
 
-  final genderOptions = ['Male', 'Female'];
+  final genderOptions = ['male', 'female'];
 
   @override
   void initState() {
@@ -65,7 +66,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.photo),
-                title: const Text("Change Photo"),
+                title: Text(tr("profile_change_photo")),
                 onTap: () async {
                   Navigator.pop(context);
                   final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -77,7 +78,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               if (_photoUrl != null)
                 ListTile(
                   leading: const Icon(Icons.delete),
-                  title: const Text("Remove Photo"),
+                  title: Text(tr("profile_remove_photo")),
                   onTap: () async {
                     Navigator.pop(context);
                     final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -95,7 +96,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       },
     );
   }
-
 
   Future<String?> _uploadAvatar(File file) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -151,11 +151,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Align(
+        title: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            "Edit Profile",
-            style: TextStyle(
+            tr("profile_edit"),
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
@@ -193,12 +193,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              Text("Tap to change photo", style: TextStyle(color: Colors.grey[600])),
+              Text(tr("profile_tap_to_change"), style: TextStyle(color: Colors.grey[600])),
               const SizedBox(height: 30),
               TextField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: "Name",
+                  labelText: tr("profile_name"),
                   border: border,
                   prefixIcon: const Icon(Icons.person),
                 ),
@@ -207,11 +207,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               DropdownButtonFormField<String>(
                 value: genderOptions.contains(_gender) ? _gender : null,
                 items: genderOptions
-                    .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                    .map((g) => DropdownMenuItem(value: g, child: Text(tr("profile_gender_$g"))))
                     .toList(),
                 onChanged: (val) => setState(() => _gender = val),
                 decoration: InputDecoration(
-                  labelText: "Gender",
+                  labelText: tr("profile_gender"),
                   border: border,
                   prefixIcon: const Icon(Icons.wc),
                 ),
@@ -221,7 +221,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 controller: _heightController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: "Height (cm)",
+                  labelText: tr("profile_height"),
                   border: border,
                   prefixIcon: const Icon(Icons.height),
                 ),
@@ -231,7 +231,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 controller: _weightController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: "Weight (kg)",
+                  labelText: tr("profile_weight"),
                   border: border,
                   prefixIcon: const Icon(Icons.monitor_weight),
                 ),
@@ -241,14 +241,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 onTap: _pickDate,
                 child: InputDecorator(
                   decoration: InputDecoration(
-                    labelText: "Birth Date",
+                    labelText: tr("profile_birthdate"),
                     border: border,
                     prefixIcon: const Icon(Icons.cake),
                   ),
                   child: Text(
                     _birthDate != null
                         ? "${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}"
-                        : "Select a date",
+                        : tr("profile_select_date"),
                     style: const TextStyle(fontSize: 16),
                   ),
                 ),

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/percent_indicator.dart';
@@ -9,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../services/activity_tracker_service.dart';
 import '../../services/goal_service.dart';
 import 'goal_screen.dart';
+
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -58,7 +60,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String get _label {
     final today = DateFormat.yMMMMd('en').format(DateTime.now());
     final picked = DateFormat.yMMMMd('en').format(_day);
-    return picked == today ? 'Today' : picked;
+    return picked == today ? tr('dashboard_today') : picked;
   }
 
   @override
@@ -92,13 +94,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         IconButton(
                           icon: Icon(Icons.flag, color: isDark ? Colors.white : Colors.white),
-                          onPressed: () {
-                            Navigator.push(
+                          onPressed: () async {
+                            await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => const GoalScreen(),
                               ),
                             );
+                            final goalService = GoalService();
+                            final goal = await goalService.loadGoals();
+                            setState(() {
+                              _goalSteps = goal.steps;
+                            });
                           },
                         ),
                         const Spacer(),
@@ -131,11 +138,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                               await Share.shareXFiles(
                                 [XFile(imagePath.path)],
-                                text: '📊 My Activity Stats',
+                                text: tr('dashboard_share_text'),
                               );
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error capturing screenshot: $e')),
+                                SnackBar(content: Text(tr('dashboard_error_screenshot', namedArgs: {'error': e.toString()}))),
                               );
                             }
                           },
@@ -220,7 +227,7 @@ class _ActivityChart extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Text(
-                'steps',
+                tr('dashboard_steps'),
                 style: TextStyle(
                   color: isDark ? Colors.white70 : theme.colorScheme.primary,
                   fontSize: 14,
@@ -228,11 +235,11 @@ class _ActivityChart extends StatelessWidget {
               ),
             ),
             Text(
-              'Goal: $goalSteps',
+              tr('dashboard_goal', namedArgs: {'goal': goalSteps.toString()}),
               style: TextStyle(color: isDark ? Colors.white70 : theme.colorScheme.primary, fontSize: 14),
             ),
             Text(
-              'Completed: ${(100 * pct).round()}%',
+              tr('dashboard_completed', namedArgs: {'percent': (100 * pct).round().toString()}),
               style: TextStyle(color: isDark ? Colors.white70 : theme.colorScheme.primary, fontSize: 14),
             ),
           ],
@@ -241,6 +248,7 @@ class _ActivityChart extends StatelessWidget {
     );
   }
 }
+
 
 class _ActivityStats extends StatelessWidget {
   final ActivityTrackerService st;
@@ -259,25 +267,25 @@ class _ActivityStats extends StatelessWidget {
       children: [
         _Card(
           Icons.local_fire_department,
-          'Calories',
+          tr('dashboard_calories'),
           '$cal',
-          'kcal',
+          tr('dashboard_kcal'),
           isDark ? Colors.white : theme.colorScheme.primary,
           isDark: isDark,
         ),
         _Card(
           Icons.place,
-          'Distance',
+          tr('dashboard_distance'),
           dist.toStringAsFixed(2),
-          'km',
+          tr('dashboard_km'),
           isDark ? Colors.white : theme.colorScheme.secondary,
           isDark: isDark,
         ),
         _Card(
           Icons.timer,
-          'Duration',
+          tr('dashboard_duration'),
           '$mins',
-          'min',
+          tr('dashboard_min'),
           isDark ? Colors.white : Colors.pinkAccent,
           isDark: isDark,
         ),
@@ -285,6 +293,7 @@ class _ActivityStats extends StatelessWidget {
     );
   }
 }
+
 
 class _Card extends StatelessWidget {
   final IconData ic;
@@ -388,7 +397,7 @@ class _SyncButtonState extends State<_SyncButton> {
       )
           : Icon(Icons.sync, color: isDark ? Colors.white : theme.colorScheme.primary),
       label: Text(
-        _loading ? 'Syncing...' : 'Sync Steps',
+        _loading ? tr('dashboard_syncing') : tr('dashboard_sync_steps'),
         style: TextStyle(
           fontWeight: FontWeight.bold,
           color: isDark ? Colors.white : theme.colorScheme.primary,
@@ -397,3 +406,4 @@ class _SyncButtonState extends State<_SyncButton> {
     );
   }
 }
+

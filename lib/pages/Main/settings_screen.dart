@@ -1,9 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:diploma/pages/Main/privacy_policy_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../providers/theme_provider.dart';
 
@@ -42,7 +43,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('notifications', value);
     setState(() => notificationsEnabled = value);
-    // Добавь реальную логику уведомлений при необходимости
   }
 
   void _changeLanguageDialog() async {
@@ -59,6 +59,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () => Navigator.pop(ctx, 'ru'),
             child: const Text("Русский"),
           ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'kk'),
+            child: const Text("Қазақша"),
+          ),
         ],
       ),
     );
@@ -73,22 +77,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _openPrivacyPolicy() async {
-    const url = "https://your-privacy-policy-link.com";
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
-  }
+  void _showSupportDialog() async {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController contactController = TextEditingController();
+    final TextEditingController messageController = TextEditingController();
 
-  void _openSupport() async {
-    final email = Uri(
-      scheme: 'mailto',
-      path: 'support@yourapp.com',
-      query: 'subject=App Support',
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr("support_dialog_title")),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: tr('support_name'),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: contactController,
+                decoration: InputDecoration(
+                  labelText: tr('support_email'),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: messageController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  labelText: tr('support_message'),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: Text(tr("cancel")),
+            onPressed: () => Navigator.pop(ctx, false),
+          ),
+          ElevatedButton(
+            child: Text(tr("support_send")),
+            onPressed: () async {
+              final name = nameController.text.trim();
+              final contact = contactController.text.trim();
+              final message = messageController.text.trim();
+              if (name.isEmpty || contact.isEmpty || message.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(tr("fill_all_fields"))),
+                );
+                return;
+              }
+              final uid = FirebaseAuth.instance.currentUser?.uid;
+              if (uid != null) {
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(uid)
+                    .collection('support_requests')
+                    .add({
+                  'name': name,
+                  'contact': contact,
+                  'message': message,
+                  'date': DateTime.now(),
+                });
+              }
+              Navigator.pop(ctx, true);
+            },
+          ),
+        ],
+      ),
     );
-    if (await canLaunchUrl(email)) {
-      await launchUrl(email);
+
+    if (result == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('support_success'))),
+      );
     }
   }
 
@@ -119,7 +189,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(tr("account_deleted"))),
           );
-          // Вернуть на экран входа или сплэш-скрин:
           Navigator.pushNamedAndRemoveUntil(context, '/splash', (_) => false);
         }
       } on FirebaseAuthException catch (e) {
@@ -127,7 +196,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(tr("reauth_required"))),
           );
-          // Можно отправить на экран логина:
           Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -142,12 +210,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    String currentLanguage =
-    context.locale.languageCode == 'ru' ? 'Русский' : 'English';
+    String currentLanguage;
+    switch (context.locale.languageCode) {
+      case 'ru':
+        currentLanguage = 'Русский';
+        break;
+      case 'kk':
+        currentLanguage = 'Қазақша';
+        break;
+      default:
+        currentLanguage = 'English';
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -187,12 +263,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.privacy_tip),
             title: Text(tr("privacy_policy")),
-            onTap: _openPrivacyPolicy,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.support_agent),
             title: Text(tr("support")),
-            onTap: _openSupport,
+            onTap: _showSupportDialog,
           ),
           const Divider(),
           ListTile(

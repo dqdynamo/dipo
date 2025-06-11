@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:easy_localization/easy_localization.dart'; // <--- добавь!
 
 import 'add_edit_meal_screen.dart';
 import '../../services/nutrition_plan_service.dart';
@@ -111,7 +112,6 @@ class _NutritionScreenState extends State<NutritionScreen> {
   void _changeDate(int offset) async {
     final nextDate = _selectedDate.add(Duration(days: offset));
     final today = DateTime.now();
-    // Do not allow selecting a future date
     if (nextDate.isAfter(DateTime(today.year, today.month, today.day))) return;
 
     setState(() {
@@ -126,14 +126,13 @@ class _NutritionScreenState extends State<NutritionScreen> {
     double diff = (_currentWeight! - _goalWeight!).abs();
     if (diff < 0.1) return null; // Already reached
 
-    // 0.5 kg per week = 0.0714 kg/day
     double days = diff / 0.0714;
     int daysInt = days.round();
 
     if (_plan!.goalType == NutritionGoalType.maintain) {
-      return "Maintaining";
+      return tr("nutrition_maintaining");
     }
-    return "$daysInt days";
+    return tr("nutrition_days", namedArgs: {"days": "$daysInt"});
   }
 
   Widget _buildTopHeader(BuildContext context) {
@@ -221,7 +220,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text('$cals', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    Text('/ $target kcal', style: theme.textTheme.bodySmall),
+                    Text('/ $target ${tr("nutrition_kcal")}', style: theme.textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -304,15 +303,19 @@ class _NutritionScreenState extends State<NutritionScreen> {
     if (_plan == null) return const SizedBox();
 
     final goalTitle = _plan!.goalType == NutritionGoalType.lose
-        ? "Lose Weight"
+        ? tr("nutrition_goal_lose")
         : _plan!.goalType == NutritionGoalType.gain
-        ? "Gain Weight"
-        : "Maintain Weight";
+        ? tr("nutrition_goal_gain")
+        : tr("nutrition_goal_maintain");
 
     final bmiValue = _plan!.bmi.toStringAsFixed(1);
     final bmiLabel = _plan!.bmi < 18.5
-        ? "Underweight"
-        : (_plan!.bmi < 25 ? "Normal" : _plan!.bmi < 30 ? "Overweight" : "Obese");
+        ? tr("nutrition_bmi_underweight")
+        : (_plan!.bmi < 25
+        ? tr("nutrition_bmi_normal")
+        : _plan!.bmi < 30
+        ? tr("nutrition_bmi_overweight")
+        : tr("nutrition_bmi_obese"));
 
     String? estimated = _estimatedDays;
 
@@ -331,7 +334,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Your Plan", style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+                        Text(tr("nutrition_your_plan"), style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
                         Row(
                           children: [
@@ -349,7 +352,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          "${_plan!.calorieTarget} kcal",
+                          "${_plan!.calorieTarget} ${tr("nutrition_kcal")}",
                           style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                         ),
                       ],
@@ -396,7 +399,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text("Weight Progress", style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+                        Text(tr("nutrition_weight_progress"), style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -420,7 +423,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          "Current   →   Goal",
+                          tr("nutrition_current_to_goal"),
                           style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
                         ),
                         if (estimated != null) ...[
@@ -431,7 +434,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                               Icon(Icons.timer, size: 18, color: theme.colorScheme.primary),
                               const SizedBox(width: 6),
                               Text(
-                                "Estimated: $estimated",
+                                "${tr('nutrition_estimated')}: $estimated",
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onBackground,
                                   fontWeight: FontWeight.w500,
@@ -446,7 +449,6 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              // Card for plan change
               SizedBox(
                 width: 120,
                 child: Card(
@@ -468,7 +470,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                           Icon(Icons.settings, color: theme.colorScheme.primary, size: 28),
                           const SizedBox(height: 10),
                           Text(
-                            "Change\nPlan",
+                            tr("nutrition_change_plan"),
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSecondaryContainer,
                               fontWeight: FontWeight.w600,
@@ -512,7 +514,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          label,
+          tr("nutrition_$label".toLowerCase()),
           style: theme?.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 4),
@@ -577,6 +579,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
         backgroundColor: theme.colorScheme.secondaryContainer,
         child: Icon(Icons.add, color: theme.colorScheme.onSecondaryContainer),
         elevation: 3,
+        tooltip: tr('nutrition_add_meal'),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -584,26 +587,25 @@ class _NutritionScreenState extends State<NutritionScreen> {
         children: [
           _buildTopHeader(context),
           buildPlanInfoCards(context),
-          // Macro rings
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 18),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 macroCircle(
-                  label: 'Protein',
+                  label: 'protein',
                   value: _protein,
                   goal: _plan?.proteinTarget ?? 1,
                   context: context,
                 ),
                 macroCircle(
-                  label: 'Carbs',
+                  label: 'carbs',
                   value: _carbs,
                   goal: _plan?.carbsTarget ?? 1,
                   context: context,
                 ),
                 macroCircle(
-                  label: 'Fat',
+                  label: 'fat',
                   value: _fat,
                   goal: _plan?.fatTarget ?? 1,
                   context: context,
@@ -614,7 +616,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              "Meals",
+              tr("nutrition_meals"),
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
@@ -627,11 +629,15 @@ class _NutritionScreenState extends State<NutritionScreen> {
               leading: Icon(Icons.restaurant_menu, color: theme.colorScheme.primary),
               title: Text(meal['name'], style: theme.textTheme.bodyLarge),
               subtitle: Text(
-                '${meal['calories']} kcal • P:${meal['protein']} F:${meal['fat']} C:${meal['carbs']}',
+                '${meal['calories']} ${tr("nutrition_kcal")} • '
+                    '${tr("nutrition_p")}:${meal['protein']} '
+                    '${tr("nutrition_f")}:${meal['fat']} '
+                    '${tr("nutrition_c")}:${meal['carbs']}',
                 style: theme.textTheme.bodySmall,
               ),
               trailing: IconButton(
                 icon: Icon(Icons.delete, color: theme.colorScheme.error),
+                tooltip: tr('nutrition_delete_meal'),
                 onPressed: () => _deleteMeal(meal['id']),
               ),
             ),

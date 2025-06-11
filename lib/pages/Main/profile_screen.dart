@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:easy_localization/easy_localization.dart'; // <--- Добавь!
 import 'EditProfile_Screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -90,11 +91,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Align(
+        title: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            "Profile",
-            style: TextStyle(
+            tr("profile_title"), // <-- локализация
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
@@ -105,6 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: _goToEdit,
+            tooltip: tr("profile_edit"),
           ),
         ],
       ),
@@ -113,8 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           : Center(
         child: SingleChildScrollView(
           child: Padding(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -127,21 +128,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ? NetworkImage(userData!['photoUrl'])
                         : null,
                     child: userData!['photoUrl'] == null
-                        ? const Icon(Icons.person,
-                        size: 50, color: Colors.white)
+                        ? const Icon(Icons.person, size: 50, color: Colors.white)
                         : null,
                   ),
                 ),
                 const SizedBox(height: 24),
-                _profileTile(
-                    "Name", userData!['displayName'] ?? 'No name'),
-                _profileTile("Email",
-                    FirebaseAuth.instance.currentUser?.email ?? ''),
-                _profileTile("Gender", userData!['gender'] ?? ''),
-                _profileTile("Height", "${userData!['heightCm']} cm"),
-                _profileTile("Weight", "${userData!['weightKg']} kg"),
-                _profileTile(
-                    "Birth Date", _formatDate(userData!['birthday'])),
+                _profileTile(tr("profile_name"), userData!['displayName'] ?? tr('profile_no_name')),
+                _profileTile(tr("profile_email"), FirebaseAuth.instance.currentUser?.email ?? ''),
+                _profileTile(tr("profile_gender"), userData!['gender'] ?? ''),
+                _profileTile(tr("profile_height"), "${userData!['heightCm']} cm"),
+                _profileTile(tr("profile_weight"), "${userData!['weightKg']} kg"),
+                _profileTile(tr("profile_birthdate"), _formatDate(userData!['birthday'])),
               ],
             ),
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 
@@ -52,18 +53,10 @@ class _SplashScreenState extends State<SplashScreen> {
                     color: Colors.white,
                   ),
                 ),
-                // const SizedBox(height: 50),
-                // _buildLoginButton(
-                //   icon: FontAwesomeIcons.google,
-                //   text: "Войти через Google",
-                //   color: Colors.red,
-                //   textColor: Colors.white,
-                //   onPressed: _navigateToNextScreen,
-                // ),
                 const SizedBox(height: 20),
                 _buildLoginButton(
                   icon: Icons.email,
-                  text: "Войти через Email",
+                  text: tr("splash_login_email"),
                   color: Colors.black,
                   textColor: Colors.white,
                   onPressed: () {
@@ -82,11 +75,6 @@ class _SplashScreenState extends State<SplashScreen> {
       ),
     );
   }
-
-  // void _navigateToNextScreen() {
-  //   User? user = FirebaseAuth.instance.currentUser;
-  //   Navigator.pushReplacementNamed(context, user != null ? '/home' : '/login');
-  // }
 
   Widget _buildLoginButton({
     required IconData icon,
@@ -118,9 +106,9 @@ class _SplashScreenState extends State<SplashScreen> {
           MaterialPageRoute(builder: (context) => const RegisterScreen()),
         );
       },
-      child: const Text(
-        "Нет аккаунта? Зарегистрируйтесь",
-        style: TextStyle(
+      child: Text(
+        tr("splash_no_account"),
+        style: const TextStyle(
           fontSize: 14,
           color: Colors.white,
           decoration: TextDecoration.underline,

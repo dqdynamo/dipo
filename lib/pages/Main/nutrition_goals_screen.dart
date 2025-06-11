@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../services/nutrition_service.dart';
 
 class NutritionGoalsScreen extends StatefulWidget {
@@ -51,8 +52,10 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen> {
           child: Column(
             children: [
               const SizedBox(height: 16),
-              const Text('Nutrition Goals',
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(
+                tr('nutrition_goals_title'),
+                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 20),
               Expanded(
                 child: Container(
@@ -64,10 +67,10 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen> {
                   ),
                   child: Column(
                     children: [
-                      _field(_cal, 'Calories'),
-                      _field(_pro, 'Protein (g)'),
-                      _field(_carb, 'Carbs (g)'),
-                      _field(_fat, 'Fat (g)'),
+                      _field(_cal, tr('nutrition_goals_calories')),
+                      _field(_pro, tr('nutrition_goals_protein')),
+                      _field(_carb, tr('nutrition_goals_carbs')),
+                      _field(_fat, tr('nutrition_goals_fat')),
                       const SizedBox(height: 24),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
@@ -75,7 +78,7 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen> {
                           minimumSize: const Size.fromHeight(48),
                         ),
                         onPressed: _save,
-                        child: const Text('Save'),
+                        child: Text(tr('save')),
                       ),
                     ],
                   ),

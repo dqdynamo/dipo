@@ -12,7 +12,6 @@ class NutritionPlan {
   final NutritionGoalType goalType;
   final int calorieTarget;
 
-  // Геттеры считают от калорийности:
   double get proteinTarget => calorieTarget * 0.25 / 4;
   double get fatTarget => calorieTarget * 0.3 / 9;
   double get carbsTarget => calorieTarget * 0.45 / 4;
@@ -80,7 +79,6 @@ class NutritionPlanService {
         : tdee)
         .round();
 
-    // НЕ передаём макроцели в конструктор!
     final plan = NutritionPlan(
       bmi: bmi,
       bmr: bmr,

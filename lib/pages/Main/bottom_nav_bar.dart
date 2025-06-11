@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:easy_localization/easy_localization.dart'; // Добавлено
 
 import 'dashboard_screen.dart';
 import 'progress_screen.dart';
@@ -82,15 +83,19 @@ class _BottomNavBarScreenState extends State<BottomNavBarScreen> {
               });
             },
             type: BottomNavigationBarType.fixed,
-            items: const [
+            items: [
               BottomNavigationBarItem(
-                  icon: Icon(Icons.dashboard), label: 'Dashboard'),
+                  icon: const Icon(Icons.dashboard),
+                  label: tr('dashboard')),
               BottomNavigationBarItem(
-                  icon: Icon(Icons.bar_chart), label: 'Progress'),
+                  icon: const Icon(Icons.bar_chart),
+                  label: tr('progress')),
               BottomNavigationBarItem(
-                  icon: Icon(Icons.restaurant_menu), label: 'Nutrition'),
+                  icon: const Icon(Icons.restaurant_menu),
+                  label: tr('nutrition')),
               BottomNavigationBarItem(
-                  icon: Icon(Icons.more_horiz), label: 'More'),
+                  icon: const Icon(Icons.more_horiz),
+                  label: tr('more')),
             ],
           ),
         );

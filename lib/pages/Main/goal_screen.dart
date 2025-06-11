@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart'; // Добавь импорт!
 import '../../models/goal_model.dart';
 import '../../services/goal_service.dart';
 
@@ -35,7 +36,7 @@ class _GoalScreenState extends State<GoalScreen> {
     } catch (e) {
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load goals: $e')),
+        SnackBar(content: Text(tr('goals_failed_load', namedArgs: {'error': e.toString()}))),
       );
     }
   }
@@ -62,7 +63,7 @@ class _GoalScreenState extends State<GoalScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFFFF9240),
-        title: const Text("Set Goal"),
+        title: Text(tr("goals_title")),
         centerTitle: true,
         actions: [
           IconButton(
@@ -75,27 +76,27 @@ class _GoalScreenState extends State<GoalScreen> {
         children: [
           const SizedBox(height: 20),
           _GoalSlider(
-            label: 'Activity Goal',
+            label: tr('goals_steps_label'),
             value: _steps,
-            unit: 'steps',
+            unit: tr('goals_steps_unit'),
             min: 1000,
             max: 20000,
             step: 500,
             onChanged: (v) => setState(() => _steps = v),
           ),
           _GoalSlider(
-            label: 'Sleep Goal',
+            label: tr('goals_sleep_label'),
             value: _sleep,
-            unit: 'hours',
+            unit: tr('goals_sleep_unit'),
             min: 4,
             max: 12,
             step: 0.5,
             onChanged: (v) => setState(() => _sleep = v),
           ),
           _GoalSlider(
-            label: 'Weight Goal',
+            label: tr('goals_weight_label'),
             value: _weight,
-            unit: 'kg',
+            unit: tr('goals_weight_unit'),
             min: 30,
             max: 150,
             step: 1,
@@ -138,19 +139,19 @@ class _GoalSlider extends StatelessWidget {
               final result = await showDialog<double>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: Text('Enter $label'),
+                  title: Text(tr('goals_enter_value', namedArgs: {'label': label})),
                   content: TextField(
                     controller: controller,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Enter value',
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      hintText: tr('goals_enter_hint'),
                     ),
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
+                      child: Text(tr('cancel')),
                     ),
                     TextButton(
                       onPressed: () {
@@ -159,11 +160,11 @@ class _GoalSlider extends StatelessWidget {
                           Navigator.pop(context, input);
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Invalid value')),
+                            SnackBar(content: Text(tr('goals_invalid_value'))),
                           );
                         }
                       },
-                      child: const Text('OK'),
+                      child: Text(tr('ok')),
                     ),
                   ],
                 ),

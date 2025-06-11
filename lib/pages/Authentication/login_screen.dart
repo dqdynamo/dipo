@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -36,18 +37,18 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text;
 
     if (email.isEmpty) {
-      _emailError = "Email is required";
+      _emailError = tr('login_email_required');
       isValid = false;
     } else if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
-      _emailError = "Enter a valid email";
+      _emailError = tr('login_email_invalid');
       isValid = false;
     }
 
     if (password.isEmpty) {
-      _passwordError = "Password is required";
+      _passwordError = tr('login_password_required');
       isValid = false;
     } else if (password.length < 6) {
-      _passwordError = "Password must be at least 6 characters";
+      _passwordError = tr('login_password_short');
       isValid = false;
     }
     return isValid;
@@ -58,13 +59,13 @@ class _LoginScreenState extends State<LoginScreen> {
       case 'invalid-credential':
       case 'invalid-verification-code':
       case 'invalid-verification-id':
-        return 'Invalid credentials. Please check your email and password.';
+        return tr('login_error_invalid_credentials');
       case 'user-disabled':
-        return 'This account has been disabled. Please contact support.';
+        return tr('login_error_user_disabled');
       case 'too-many-requests':
-        return 'Too many login attempts. Please try again later.';
+        return tr('login_error_too_many_requests');
       default:
-        return 'An unknown error occurred. Please try again.';
+        return tr('login_error_unknown');
     }
   }
 
@@ -85,15 +86,14 @@ class _LoginScreenState extends State<LoginScreen> {
     } on FirebaseAuthException catch (e) {
       setState(() {
         if (e.code == 'user-not-found') {
-          _emailError = "No user found with this email.";
+          _emailError = tr('login_error_user_not_found');
         } else if (e.code == 'wrong-password') {
-          _passwordError = "Incorrect password.";
+          _passwordError = tr('login_error_wrong_password');
         } else if (e.code == 'invalid-email') {
-          _emailError = "Invalid email format.";
+          _emailError = tr('login_email_invalid');
         } else {
-          // Show all other errors as a snackbar
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Login error: ${_getErrorMessage(e.code)}")),
+            SnackBar(content: Text(tr('login_error') + _getErrorMessage(e.code))),
           );
         }
         _isLoading = false;
@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Unknown error: $e")),
+          SnackBar(content: Text(tr('login_error_unknown') + ": $e")),
         );
         _isLoading = false;
       });
@@ -116,11 +116,11 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     if (email.isEmpty) {
-      setState(() => _emailError = "Enter your email to reset password");
+      setState(() => _emailError = tr('login_reset_email_required'));
       return;
     }
     if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
-      setState(() => _emailError = "Enter a valid email");
+      setState(() => _emailError = tr('login_email_invalid'));
       return;
     }
 
@@ -129,17 +129,17 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await _auth.sendPasswordResetEmail(email: email);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Password reset email sent!")),
+        SnackBar(content: Text(tr('login_reset_email_sent'))),
       );
     } on FirebaseAuthException catch (e) {
       setState(() {
         if (e.code == 'user-not-found') {
-          _emailError = "No user found with this email.";
+          _emailError = tr('login_error_user_not_found');
         } else if (e.code == 'invalid-email') {
-          _emailError = "Invalid email format.";
+          _emailError = tr('login_email_invalid');
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error: ${_getErrorMessage(e.code)}")),
+            SnackBar(content: Text(tr('login_error') + _getErrorMessage(e.code))),
           );
         }
         _isLoading = false;
@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Unknown error: $e")),
+          SnackBar(content: Text(tr('login_error_unknown') + ": $e")),
         );
         _isLoading = false;
       });
@@ -166,16 +166,16 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  "Sign In",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                Text(
+                  tr('login_title'),
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
                 TextField(
                   controller: _emailController,
                   decoration: InputDecoration(
-                    labelText: "Email",
-                    hintText: "Enter your email",
+                    labelText: tr('login_email'),
+                    hintText: tr('login_email_hint'),
                     border: const OutlineInputBorder(),
                     errorText: _emailError,
                   ),
@@ -187,8 +187,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    labelText: "Password",
-                    hintText: "Enter your password",
+                    labelText: tr('login_password'),
+                    hintText: tr('login_password_hint'),
                     border: const OutlineInputBorder(),
                     errorText: _passwordError,
                     suffixIcon: IconButton(
@@ -205,9 +205,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: _isLoading ? null : _resetPassword,
-                    child: const Text(
-                      "Forgot password?",
-                      style: TextStyle(fontSize: 14, decoration: TextDecoration.underline),
+                    child: Text(
+                      tr('login_forgot_password'),
+                      style: const TextStyle(fontSize: 14, decoration: TextDecoration.underline),
                     ),
                   ),
                 ),
@@ -222,9 +222,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                      "SIGN IN",
-                      style: TextStyle(fontSize: 16, color: Colors.white, letterSpacing: 1.2),
+                        : Text(
+                      tr('login_sign_in'),
+                      style: const TextStyle(fontSize: 16, color: Colors.white, letterSpacing: 1.2),
                     ),
                   ),
                 ),

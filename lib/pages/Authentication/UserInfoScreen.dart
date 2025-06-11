@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../services/profile_service.dart';
 
 class UserInfoScreen extends StatefulWidget {
@@ -16,7 +17,10 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
   DateTime? _birthDate;
   String? _gender;
 
-  final List<String> _genderOptions = ['Male', 'Female'];
+  List<String> get _genderOptions => [
+    tr("user_info_male"),
+    tr("user_info_female"),
+  ];
 
   Future<void> _submit() async {
     if (_nameController.text.isEmpty ||
@@ -25,7 +29,7 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
         _gender == null ||
         _birthDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in all fields")),
+        SnackBar(content: Text(tr("user_info_fill_all"))),
       );
       return;
     }
@@ -48,7 +52,28 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
         Navigator.pushReplacementNamed(context, '/home');
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error saving profile: $e")),
+          SnackBar(content: Text(tr("user_info_error_saving", args: [e.toString()]))),
+        );
+      }
+    }
+  }
+
+  Future<void> _skip() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final emptyProfile = UserProfile(
+        displayName: "",
+        birthday: null,
+        heightCm: 0,
+        weightKg: 0,
+        gender: "",
+      );
+      try {
+        await ProfileService().save(emptyProfile);
+        Navigator.pushReplacementNamed(context, '/home');
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(tr("user_info_error_saving", args: [e.toString()]))),
         );
       }
     }
@@ -68,14 +93,27 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final border = OutlineInputBorder(borderRadius: BorderRadius.circular(12));
-    const labelStyle = TextStyle(fontWeight: FontWeight.w600);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color mainBg = isDark ? const Color(0xFF232032) : const Color(0xFFF4F6F8);
+    final Color fieldBg = isDark ? Colors.white.withOpacity(0.08) : Colors.white;
+    final Color textColor = isDark ? Colors.white : Colors.black87;
+    final Color hintColor = isDark ? Colors.white70 : Colors.black54;
+    final Color iconColor = isDark ? Colors.white : Colors.deepOrange;
+
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.deepOrange.withOpacity(0.4), width: 1.3),
+    );
+    final labelStyle = TextStyle(fontWeight: FontWeight.w600, color: textColor);
+    final hintStyle = TextStyle(color: hintColor);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      backgroundColor: mainBg,
       appBar: AppBar(
-        title: const Text("User Information"),
+        title: Text(tr("user_info_title"), style: TextStyle(color: textColor)),
         backgroundColor: Colors.deepOrange,
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -83,55 +121,77 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
           children: [
             TextField(
               controller: _nameController,
+              style: TextStyle(color: textColor),
               decoration: InputDecoration(
-                labelText: "Name",
+                labelText: tr("user_info_name"),
                 labelStyle: labelStyle,
-                prefixIcon: const Icon(Icons.person),
+                hintText: tr("user_info_name"),
+                hintStyle: hintStyle,
+                prefixIcon: Icon(Icons.person, color: iconColor),
                 border: border,
+                enabledBorder: border,
+                focusedBorder: border,
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: fieldBg,
               ),
             ),
             const SizedBox(height: 15),
             DropdownButtonFormField<String>(
               value: _gender,
+              style: TextStyle(color: textColor),
+              dropdownColor: isDark ? const Color(0xFF232032) : Colors.white,
               items: _genderOptions
-                  .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                  .map((g) => DropdownMenuItem(
+                value: g,
+                child: Text(g, style: TextStyle(color: textColor)),
+              ))
                   .toList(),
               onChanged: (val) => setState(() => _gender = val),
               decoration: InputDecoration(
-                labelText: "Gender",
+                labelText: tr("user_info_gender"),
                 labelStyle: labelStyle,
-                prefixIcon: const Icon(Icons.wc),
+                prefixIcon: Icon(Icons.wc, color: iconColor),
                 border: border,
+                enabledBorder: border,
+                focusedBorder: border,
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: fieldBg,
               ),
             ),
             const SizedBox(height: 15),
             TextField(
               controller: _heightController,
               keyboardType: TextInputType.number,
+              style: TextStyle(color: textColor),
               decoration: InputDecoration(
-                labelText: "Height (cm)",
+                labelText: tr("user_info_height"),
                 labelStyle: labelStyle,
-                prefixIcon: const Icon(Icons.height),
+                hintText: tr("user_info_height"),
+                hintStyle: hintStyle,
+                prefixIcon: Icon(Icons.height, color: iconColor),
                 border: border,
+                enabledBorder: border,
+                focusedBorder: border,
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: fieldBg,
               ),
             ),
             const SizedBox(height: 15),
             TextField(
               controller: _weightController,
               keyboardType: TextInputType.number,
+              style: TextStyle(color: textColor),
               decoration: InputDecoration(
-                labelText: "Weight (kg)",
+                labelText: tr("user_info_weight"),
                 labelStyle: labelStyle,
-                prefixIcon: const Icon(Icons.monitor_weight),
+                hintText: tr("user_info_weight"),
+                hintStyle: hintStyle,
+                prefixIcon: Icon(Icons.monitor_weight, color: iconColor),
                 border: border,
+                enabledBorder: border,
+                focusedBorder: border,
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: fieldBg,
               ),
             ),
             const SizedBox(height: 15),
@@ -139,19 +199,21 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
               onTap: _pickDate,
               child: InputDecorator(
                 decoration: InputDecoration(
-                  labelText: "Birth Date",
+                  labelText: tr("user_info_birth_date"),
                   labelStyle: labelStyle,
-                  prefixIcon: const Icon(Icons.cake),
+                  prefixIcon: Icon(Icons.cake, color: iconColor),
                   border: border,
+                  enabledBorder: border,
+                  focusedBorder: border,
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: fieldBg,
                 ),
                 child: Text(
                   _birthDate == null
-                      ? "Select a date"
+                      ? tr("user_info_select_date")
                       : "${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}",
                   style: TextStyle(
-                    color: _birthDate == null ? Colors.grey[600] : Colors.black,
+                    color: _birthDate == null ? hintColor : textColor,
                     fontSize: 16,
                   ),
                 ),
@@ -168,14 +230,31 @@ class _UserInfoScreenState extends State<UserInfoScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  foregroundColor: Colors.white,
                 ),
                 icon: const Icon(Icons.check_circle, color: Colors.white),
-                label: const Text(
-                  "Save and Continue",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
+                label: Text(
+                  tr("user_info_save_continue"),
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
-            )
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: _skip,
+                icon: Icon(Icons.skip_next, color: isDark ? Colors.white70 : Colors.deepOrange),
+                label: Text(
+                  tr("skip"),
+                  style: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.deepOrange,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

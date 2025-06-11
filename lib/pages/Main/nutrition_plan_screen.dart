@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 import '../../services/goal_service.dart';
 import '../../services/nutrition_plan_service.dart';
@@ -49,7 +50,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
         return StatefulBuilder(
           builder: (context, setState) => AlertDialog(
             backgroundColor: theme.colorScheme.surface,
-            title: Text('Adjust Weight Goal', style: TextStyle(color: theme.colorScheme.onSurface)),
+            title: Text(tr('nutrition_goal_adjust_title'), style: TextStyle(color: theme.colorScheme.onSurface)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -59,7 +60,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
                   controller: controller,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: 'New Goal Weight (kg)',
+                    labelText: tr('nutrition_goal_adjust_label'),
                     errorText: error,
                     border: const OutlineInputBorder(),
                   ),
@@ -69,26 +70,26 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
+                child: Text(tr('cancel')),
               ),
               TextButton(
                 onPressed: () {
                   final value = double.tryParse(controller.text);
                   if (value == null) {
-                    setState(() => error = 'Enter a valid number');
+                    setState(() => error = tr('nutrition_goal_adjust_error_number'));
                     return;
                   }
                   if (shouldBeLess && value >= currentWeight) {
-                    setState(() => error = 'Must be less than current weight');
+                    setState(() => error = tr('nutrition_goal_adjust_error_less'));
                     return;
                   }
                   if (!shouldBeLess && value <= currentWeight) {
-                    setState(() => error = 'Must be more than current weight');
+                    setState(() => error = tr('nutrition_goal_adjust_error_more'));
                     return;
                   }
                   Navigator.pop(context, value);
                 },
-                child: const Text('Confirm'),
+                child: Text(tr('confirm')),
               ),
             ],
           ),
@@ -122,9 +123,13 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
     final currentWeight = profile.profile?.weightKg;
     double goalWeight = _goalWeight ?? currentWeight!;
 
+    if (_selectedGoal == NutritionGoalType.maintain) {
+      goalWeight = currentWeight!;
+    }
+
     if (_selectedGoal == NutritionGoalType.lose && goalWeight >= currentWeight!) {
       final confirm = await _confirmGoalCorrection(
-        message: 'To lose weight, goal must be less than current weight.',
+        message: tr('nutrition_goal_must_be_less'),
         currentWeight: currentWeight,
         shouldBeLess: true,
       );
@@ -134,7 +139,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
 
     if (_selectedGoal == NutritionGoalType.gain && goalWeight <= currentWeight!) {
       final confirm = await _confirmGoalCorrection(
-        message: 'To gain weight, goal must be more than current weight.',
+        message: tr('nutrition_goal_must_be_more'),
         currentWeight: currentWeight,
         shouldBeLess: false,
       );
@@ -157,7 +162,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Plan Saved!')),
+      SnackBar(content: Text(tr('nutrition_plan_saved'))),
     );
 
     Navigator.pop(context, true);
@@ -171,7 +176,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
-        title: Text('Nutrition Plan', style: TextStyle(color: theme.colorScheme.onSurface)),
+        title: Text(tr('nutrition_plan_title'), style: TextStyle(color: theme.colorScheme.onSurface)),
         centerTitle: true,
       ),
       extendBodyBehindAppBar: true,
@@ -202,7 +207,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
       case 2:
         return _planSelectionStep(theme);
       default:
-        return const Center(child: Text('Invalid state'));
+        return Center(child: Text(tr('nutrition_invalid_state')));
     }
   }
 
@@ -216,7 +221,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Welcome to Nutrition Setup',
+                  tr('nutrition_intro_title'),
                   style: theme.textTheme.headlineSmall?.copyWith(
                     color: theme.colorScheme.onBackground,
                     fontWeight: FontWeight.bold,
@@ -224,19 +229,16 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
                 ),
                 const SizedBox(height: 20),
                 _card(theme, [
-                  const Text('What is BMI?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(tr('nutrition_intro_bmi_title'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
-                  const Text(
-                    'BMI (Body Mass Index) is a number calculated from your height and weight. '
-                        'It helps us determine whether your weight is in a healthy range.',
-                  ),
+                  Text(tr('nutrition_intro_bmi_desc')),
                 ]),
               ],
             ),
           ),
         ),
         const SizedBox(height: 16),
-        _button(theme, 'Calculate My BMI', _calculateBMIAndPlan),
+        _button(theme, tr('nutrition_btn_calculate_bmi'), _calculateBMIAndPlan),
       ],
     );
   }
@@ -244,7 +246,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
   Widget _bmiResultStep(ThemeData theme) {
     final bmi = _plan!.bmi;
     final bmiCategory =
-    bmi < 18.5 ? 'Underweight' : (bmi < 25 ? 'Normal' : (bmi < 30 ? 'Overweight' : 'Obese'));
+    bmi < 18.5 ? tr('nutrition_bmi_underweight') : (bmi < 25 ? tr('nutrition_bmi_normal') : (bmi < 30 ? tr('nutrition_bmi_overweight') : tr('nutrition_bmi_obese')));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,7 +257,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Your BMI Result',
+                  tr('nutrition_bmi_result_title'),
                   style: theme.textTheme.headlineSmall?.copyWith(
                     color: theme.colorScheme.onBackground,
                     fontWeight: FontWeight.bold,
@@ -263,49 +265,33 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
                 ),
                 const SizedBox(height: 20),
                 _card(theme, [
-                  Text('BMI: ${bmi.toStringAsFixed(1)} ($bmiCategory)', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text('${tr('nutrition_bmi_label')}: ${bmi.toStringAsFixed(1)} ($bmiCategory)', style: const TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text('BMR: ${_plan!.bmr.round()} kcal/day'),
-                  Text('TDEE: ${_plan!.tdee.round()} kcal/day'),
+                  Text('${tr('nutrition_bmr_label')}: ${_plan!.bmr.round()} ${tr('nutrition_kcal_day')}'),
+                  Text('${tr('nutrition_tdee_label')}: ${_plan!.tdee.round()} ${tr('nutrition_kcal_day')}'),
                 ]),
                 const SizedBox(height: 16),
                 _accordionCard(
                   theme: theme,
-                  title: 'What is BMR and TDEE?',
+                  title: tr('nutrition_bmr_tdee_title'),
                   expanded: _showBmrInfo,
                   onTap: () => setState(() => _showBmrInfo = !_showBmrInfo),
-                  content: const Text(
-                    '• BMR (Basal Metabolic Rate) is the number of calories your body needs at rest.\n\n'
-                        '• TDEE (Total Daily Energy Expenditure) includes your activity and shows the total calories you burn daily.\n\n'
-                        'We use TDEE to calculate how much you should eat for your chosen goal.',
-                  ),
+                  content: Text(tr('nutrition_bmr_tdee_desc')),
                 ),
                 const SizedBox(height: 12),
                 _accordionCard(
                   theme: theme,
-                  title: 'BMI Categories by Gender',
+                  title: tr('nutrition_bmi_categories_title'),
                   expanded: _showBmiInfo,
                   onTap: () => setState(() => _showBmiInfo = !_showBmiInfo),
-                  content: const Text(
-                    '📊 Male:\n'
-                        ' - <18.5: Underweight\n'
-                        ' - 18.5–24.9: Normal\n'
-                        ' - 25–29.9: Overweight\n'
-                        ' - 30+: Obese\n\n'
-                        '📊 Female:\n'
-                        ' - <18.0: Underweight\n'
-                        ' - 18.0–24.4: Normal\n'
-                        ' - 24.5–29.9: Overweight\n'
-                        ' - 30+: Obese\n\n'
-                        'Note: BMI is only an estimate and doesn’t consider muscle mass or body composition.',
-                  ),
+                  content: Text(tr('nutrition_bmi_categories_desc')),
                 ),
               ],
             ),
           ),
         ),
         const SizedBox(height: 16),
-        _button(theme, 'Choose Goal Plan', () => setState(() => _step = 2)),
+        _button(theme, tr('nutrition_btn_choose_goal'), () => setState(() => _step = 2)),
       ],
     );
   }
@@ -313,10 +299,10 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
   Widget _planSelectionStep(ThemeData theme) {
     final recommendation = _plan!.goalType;
     final reason = recommendation == NutritionGoalType.lose
-        ? 'Your BMI indicates excess weight. We recommend a weight loss plan.'
+        ? tr('nutrition_goal_recommend_lose')
         : recommendation == NutritionGoalType.gain
-        ? 'Your BMI indicates underweight. We recommend a weight gain plan.'
-        : 'Your weight is within a normal range. We recommend maintaining it.';
+        ? tr('nutrition_goal_recommend_gain')
+        : tr('nutrition_goal_recommend_maintain');
 
     final icon = recommendation == NutritionGoalType.lose
         ? '🔻'
@@ -325,10 +311,10 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
         : '⚖️';
 
     final title = recommendation == NutritionGoalType.lose
-        ? 'Lose Weight'
+        ? tr('nutrition_goal_lose')
         : recommendation == NutritionGoalType.gain
-        ? 'Gain Weight'
-        : 'Maintain Weight';
+        ? tr('nutrition_goal_gain')
+        : tr('nutrition_goal_maintain');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -339,7 +325,7 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Choose Your Goal',
+                  tr('nutrition_choose_goal_title'),
                   style: theme.textTheme.headlineSmall?.copyWith(
                     color: theme.colorScheme.onBackground,
                     fontWeight: FontWeight.bold,
@@ -351,27 +337,27 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
                     value: NutritionGoalType.maintain,
                     groupValue: _selectedGoal,
                     onChanged: (v) => setState(() => _selectedGoal = v),
-                    title: const Text('⚖️ Maintain weight'),
+                    title: Text('⚖️ ${tr('nutrition_goal_maintain')}'),
                     activeColor: theme.colorScheme.secondary,
                   ),
                   RadioListTile<NutritionGoalType>(
                     value: NutritionGoalType.lose,
                     groupValue: _selectedGoal,
                     onChanged: (v) => setState(() => _selectedGoal = v),
-                    title: const Text('🔻 Lose weight'),
+                    title: Text('🔻 ${tr('nutrition_goal_lose')}'),
                     activeColor: theme.colorScheme.secondary,
                   ),
                   RadioListTile<NutritionGoalType>(
                     value: NutritionGoalType.gain,
                     groupValue: _selectedGoal,
                     onChanged: (v) => setState(() => _selectedGoal = v),
-                    title: const Text('🔺 Gain weight'),
+                    title: Text('🔺 ${tr('nutrition_goal_gain')}'),
                     activeColor: theme.colorScheme.secondary,
                   ),
                 ]),
                 const SizedBox(height: 16),
                 _card(theme, [
-                  Text('$icon Recommended Plan: $title',
+                  Text('$icon ${tr('nutrition_recommended_plan')}: $title',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
                   Text(reason),
@@ -381,12 +367,11 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        _button(theme, 'Apply Plan', _saveFinalPlan),
+        _button(theme, tr('nutrition_btn_apply_plan'), _saveFinalPlan),
       ],
     );
   }
 
-  // Card style adapted to theme
   Widget _card(ThemeData theme, List<Widget> children, {Color? color}) {
     return Container(
       width: double.infinity,
@@ -443,7 +428,6 @@ class _NutritionPlanScreenState extends State<NutritionPlanScreen> {
     );
   }
 
-  // Button with dynamic color for dark/light
   Widget _button(ThemeData theme, String label, VoidCallback onPressed) {
     final isDark = theme.brightness == Brightness.dark;
     return SizedBox(
